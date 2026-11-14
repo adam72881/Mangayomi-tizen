@@ -1,10 +1,10 @@
 # Mangayomi Lite TV — stato e piano (14/11/2026)
-Sorgenti app: box /workspace/mly/app  ==  PC C:\tizen-apps\mangayomi-lite
+Sorgenti app: questo repository.
 Repo Mangayomi ufficiale clonato: /workspace/mly/mangayomi-src (API JS in lib/eval/javascript/*)
 Estensioni di Adam scaricate: /workspace/mly/ext
-Test TV via DevTools: C:\tizen-apps\tools\cdp-test.mjs (sdb shell 0 debug MgyLite01A.MangayomiLite -> sdb forward tcp:9333 tcp:<porta>)
-Build: tizen build-web -e ".*" -e README.md -e dist/* -e dist -- <app>; tizen package -t wgt -s Adamtv -- <app>\.buildResult;
-       copia "Mangayomi Lite.wgt" -> MangayomiLite.wgt; tizen install -n MangayomiLite.wgt -s 192.168.1.3:26101 -- <dir>
+Test sulla TV: sdb shell 0 debug MgyLite01A.MangayomiLite, poi sdb forward verso la porta di debug.
+Build: tizen build-web -e ".*" -e README.md -e dist/* -e dist -- <app>; tizen package -t wgt -s <profilo-di-firma> -- <app>\.buildResult;
+       copia "Mangayomi Lite.wgt" -> MangayomiLite.wgt; tizen install -n MangayomiLite.wgt -s <tv>:26101 -- <dir>
 
 Fase 1 FATTA: CSP (unsafe-eval) in config.xml v0.1.1, AnimeWorld verificato sulla TV (lista, dettaglio 1180 ep, video 1280x720 in riproduzione).
 Fase 2: adapter fedele all'originale (Element "vuoto" truthy come Mangayomi, text grezzo, getElementsBy*, getElementById,
@@ -23,10 +23,9 @@ Limiti TV: niente WebView/login (evaluateJavascriptViaWebview), Cookie/Set-Cooki
 
 - **Divisione del lavoro:** il port completo dell'interfaccia (Fase 3 e oltre) lo fa un agente Cursor in un repo separato. La v0.2.0 è la versione ponte.
 - **Sorgente:**
-  - box: `/workspace/mly/app2`;
-  - PC: `C:\tizen-apps\mangayomi-lite`. Il backup della v0.1.1 è in `C:\tizen-apps\backup-mangayomi-lite-0.1.1`.
+  - Copia di lavoro locale, separata da questo repository. Il backup della v0.1.1 resta solo sul PC.
 - **Firma e installazione:**
-  - Firmata con il profilo Adamtv e installata su 192.168.1.3:26101.
+  - Firmata in locale con il profilo di firma della TV e installata sulla TV.
   - Il pacchetto si chiama ora `Mangayomi.wgt`; viene copiato in `MangayomiLite.wgt` prima dell'installazione.
   - App id invariato: `MgyLite01A.MangayomiLite`.
 - **Adapter (Fase 2):**
@@ -47,7 +46,7 @@ Limiti TV: niente WebView/login (evaluateJavascriptViaWebview), Cookie/Set-Cooki
 - **Da fare:**
   - test delle altre estensioni sulla TV (sul server: HentaiWorld OK, Link universale e Stripchat parziali, HypnoTube, Chaturbate e BongaCams no);
   - installare la versione dell'agente Cursor quando sarà pronta.
-- **Strumenti di test:** `C:\tizen-apps\tools\cdp2.mjs <porta> <Sorgente> <query>`.
+- **Strumenti di test:** script locale via CDP (`<porta> <Sorgente> <query>`).
 
 ## Aggiornamento 14/11/2026 15:36 (ora di Roma): v0.2.1 installata sulla TV
 
@@ -86,8 +85,8 @@ Limiti TV: niente WebView/login (evaluateJavascriptViaWebview), Cookie/Set-Cooki
   - conferma prima di Disinstalla.
 
 ## v0.3.1: versione completa (agente Cursor), installata il 14/11/2026 verso le 15:52 (ora di Roma)
-- Sorgente: commit c664716 del repo adam-aouam/tmp-60c3b50e7c1422c8. Copia modificata sul box in /workspace/mly/full/mangayomi (vedi NOTE_MODIFICHE.md) e sul PC in C:\tizen-apps\mangayomi-full.
-- Pacchetto firmato con Adamtv: C:\tizen-apps\MangayomiFull-0.3.1.wgt. Per il rollback c'è C:\tizen-apps\MangayomiLite-0.2.1-firmato.wgt; dato che la versione è più bassa, probabilmente bisogna prima disinstallare.
+- Sorgente: questo repository (vedi NOTE_MODIFICHE.md). Le copie sul PC restano fuori dal repository.
+- Pacchetto firmato in locale. Per il rollback alla 0.2.1, dato che la versione è più bassa, probabilmente bisogna prima disinstallare.
 - Correzioni fatte:
   - id/versione nel config, per sostituire la v0.2.1;
   - la cronologia scarta le voci rimaste dalla v0.1 ("undefined / undefined");
@@ -107,7 +106,7 @@ Limiti TV: niente WebView/login (evaluateJavascriptViaWebview), Cookie/Set-Cooki
   - le miniature di PMVHaven arrivano fino a 2560x1440, pesanti da decodificare.
 
 ## v0.3.2: pronta e firmata il 14/11/2026 verso le 16:05 (ora di Roma), NON ancora installata sulla TV
-- Pacchetto: C:\tizen-apps\MangayomiFull-0.3.2.wgt, firmato con Adamtv. Sorgente sul PC in C:\tizen-apps\mangayomi-full; la copia della 0.3.1 è in C:\tizen-apps\backup-mangayomi-full-0.3.1.
+- Pacchetto firmato in locale. La copia della 0.3.1 resta sul PC, fuori dal repository.
 - Sul box: /workspace/mly/full/mangayomi; la copia della 0.3.1 è in /workspace/mly/full-0.3.1-backup.
 - Novità (dettagli in NOTE_MODIFICHE.md):
   - Riprendi/Continua come in Mangayomi;
@@ -116,10 +115,10 @@ Limiti TV: niente WebView/login (evaluateJavascriptViaWebview), Cookie/Set-Cooki
   - "Su" da "Carica altro" torna alla griglia;
   - miniature PMVHaven più leggere (thumb_md).
 - Test su Chromium headless del box: 40/40 superati (tools/v032test.mjs).
-- Per installarla serve il via libera di Adam: `tizen install -n MangayomiFull-0.3.2.wgt -s 192.168.1.3:26101`.
+- Per installarla serve il via libera di Adam: `tizen install -n MangayomiFull-0.3.2.wgt -s <tv>:26101`.
 
 ## v0.3.3: installata sulla TV il 14/11/2026 verso le 16:18 (ora di Roma)
-- Pacchetto: C:\tizen-apps\MangayomiFull-0.3.3.wgt (firmato Adamtv). Le versioni precedenti sono in MangayomiFull-0.3.2.wgt e MangayomiFull-0.3.1.wgt.
+- Pacchetto firmato in locale. Le versioni precedenti restano sul PC, fuori dal repository.
 - Correzioni rispetto alla 0.3.2, emerse dalla prova sulla TV:
   - aggiunto il privilegio tv.inputdevice: senza, i tasti numerici davano "Permission denied";
   - le copertine "custom" di PMVHaven, grandi fino a 4K, ora usano la versione webp a 480x270: prima la griglia si bloccava fino a 4 s.
@@ -133,8 +132,8 @@ Limiti TV: niente WebView/login (evaluateJavascriptViaWebview), Cookie/Set-Cooki
 - All'uscita la cronologia e i progressi sono vuoti; estensioni installate: AnimeWorld, PMVHaven, JAV Guru.
 
 ## v0.3.4: installata sulla TV il 14/11/2026 verso le 16:45 (ora di Roma), provata con i tasti veri del telecomando di rete
-- Telecomando di rete abbinato con il nome "GrokBot": Adam ha premuto Consenti. Il token è salvato solo sul PC, in C:\tizen-apps\tools\tv-remote-token.txt.
-- Script: C:\tizen-apps\tools\tv-remote.mjs (comandi pair, key, keys, launch, status); richiede npm "ws" nella stessa cartella.
+- Telecomando di rete abbinato: Adam ha premuto Consenti. Il token resta solo sul PC, nel file ignorato da git `tv-remote-token.txt`.
+- Script: `tools/tv-remote.mjs` (comandi pair, key, keys, launch, status). Vuole `TV_IP` e il pacchetto npm "ws" nella stessa cartella.
 - Il WebSocket integrato di Node apriva la connessione ma la TV non mostrava mai la richiesta di consenso. Con la libreria "ws" (compressione disattivata, sdb disconnesso) ha funzionato subito.
 - Verificato con i tasti veri:
   - 0×5 attiva e disattiva la modalità adulti (PMVHaven e JAV Guru compaiono e spariscono da Sfoglia);
@@ -146,3 +145,12 @@ Limiti TV: niente WebView/login (evaluateJavascriptViaWebview), Cookie/Set-Cooki
   - "Sinistra" verso la barra laterale va sulla scheda selezionata e non cambia scheda;
   - dopo 0×5 il focus resta sulla barra laterale.
 - Nota: se l'app è già aperta normalmente, `sdb shell 0 debug` si blocca; prima bisogna chiuderla con was_kill.
+
+## v0.3.5: pronta nei test headless, NON installata sulla TV
+- Conferma prima di disinstallare un'estensione. I pulsanti delle Estensioni si raggiungono con il telecomando. Entrando in una sorgente il focus va su Popolari e poi sulla prima copertina, non su Cerca.
+- Copertine come la griglia compatta di Mangayomi, con il titolo sopra la sfumatura in Sfoglia, ricerca e Libreria.
+- Lettore: titolo in alto, barra dei tempi, fila di comandi con «+85 s Salta intro» e Qualità in un pannello in basso. I comandi si nascondono dopo 3 secondi durante la riproduzione. Parte la qualità più alta. All'avvio non c'è il selettore qualità e non c'è il cartellino «AnimeWorld».
+- Icona: Aniyomi 512×512 (`icon.png`, licenza Apache-2.0 in `THIRD_PARTY_NOTICES.md`).
+- Stripchat: se il flusso è il filmato da circa 12 secondi «Find the real thing on STRIPCHAT.COM» (stanza privata o offline), il lettore non lo avvia e mostra «Stanza privata o offline». Una diretta pubblica non cambia. L'HD protetto non si aggira.
+- JAV Guru e HypnoTube si correggono nelle estensioni, non in questa app: il clip di prova da 10 secondi e «Popolari = Ultimi» non dipendono dall'interfaccia.
+- Da firmare e installare solo con il via libera di Adam. Il pacchetto precedente non contiene queste modifiche.

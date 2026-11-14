@@ -5,6 +5,7 @@
 //   node tv-remote.mjs keys KEY_UP,KEY_DOWN [ms] -> sequenza di tasti
 //   node tv-remote.mjs launch <appId>            -> avvia un'app (REST, ripiego ed.apps.launch)
 //   node tv-remote.mjs status                    -> info della TV (REST)
+// Indirizzo: variabile d'ambiente TV_IP (non va scritta nel repository).
 // Il token resta solo nel file tv-remote-token.txt accanto a questo script e non viene mai stampato.
 // Richiede il pacchetto "ws" (npm install ws) nella stessa cartella: il WebSocket integrato di Node
 // apriva la connessione ma la TV non mostrava mai la richiesta "Consenti".
@@ -14,11 +15,12 @@ const WS = createRequire(import.meta.url)("ws");
 import path from "node:path";
 import { fileURLToPath } from "node:url";
 const HERE = path.dirname(fileURLToPath(import.meta.url));
-const TV = process.env.TV_IP || "192.168.1.3";
+const TV = process.env.TV_IP || "";
 const TOKEN_FILE = path.join(HERE, "tv-remote-token.txt");
 const NAME = Buffer.from("GrokBot").toString("base64");
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const readToken = () => { try { return fs.readFileSync(TOKEN_FILE, "utf8").trim(); } catch { return ""; } };
+if (!TV) { console.error("Manca TV_IP (indirizzo della TV in rete locale)."); process.exit(1); }
 
 function open(timeoutMs) {
   const token = readToken();

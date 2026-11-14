@@ -249,7 +249,59 @@
     return m + ":" + String(s % 60).padStart(2, "0");
   }
 
-  function playUrl(url, startMs) {
+  const OFFLINE_ROOM = "Stanza privata o offline";
+
+  function sourceLabel() {
+    if (!frame || !frame.sourceId || !Mly.memory || !Mly.memory.extensions) return "";
+    const src = Mly.memory.extensions[String(frame.sourceId)];
+    return src ? ((src.name || "") + " " + (src.baseUrl || "")) : "";
+  }
+  function stripchatContext(url) {
+    return /stripchat|doppiocdn|saawsedge/i.test(String(url || "") + " " + sourceLabel());
+  }
+  function playlistSeconds(text) {
+    const parts = String(text || "").match(/#EXTINF:([0-9.]+)/gi) || [];
+    return parts.reduce((sum, line) => sum + parseFloat(line.split(":")[1]), 0);
+  }
+  // The 12s "Find the real thing on STRIPCHAT.COM" clip is a short VOD.
+  // A public room is a live playlist and is left alone. No HD bypass.
+  function isPlaceholderPlaylist(text, url) {
+    const body = String(text || "");
+    const where = body + "\n" + String(url || "");
+    if (/find the real thing/i.test(where) && /stripchat/i.test(where)) return true;
+    if (!stripchatContext(url) && !/stripchat|doppiocdn|saawsedge/i.test(where)) return false;
+    const vod = /#EXT-X-ENDLIST/i.test(body) || /PLAYLIST-TYPE:\s*VOD/i.test(body);
+    const dur = playlistSeconds(body);
+    return vod && dur >= 8 && dur <= 16;
+  }
+  async function isPlaceholderStream(url) {
+    if (!stripchatContext(url) || !/\.m3u8(\?|$)/i.test(url)) return false;
+    try {
+      const text = await fetch(url, { credentials: "omit" }).then((r) => r.text());
+      if (isPlaceholderPlaylist(text, url)) return true;
+      if (/#EXTINF:/i.test(text)) return false;
+      const next = text.split(/\r?\n/).map((l) => l.trim()).find((l) => l && l.charAt(0) !== "#");
+      if (!next) return false;
+      const abs = new URL(next, url).href;
+      const nested = await fetch(abs, { credentials: "omit" }).then((r) => r.text());
+      return isPlaceholderPlaylist(nested, abs);
+    } catch (e) {
+      return false;
+    }
+  }
+  function blockOfflineRoom() {
+    if (hls) { try { hls.destroy(); } catch (e) {} hls = null; }
+    if (video) {
+      try { video.pause(); } catch (e) {}
+      video.removeAttribute("src");
+      try { video.load(); } catch (e) {}
+    }
+    showError(OFFLINE_ROOM);
+    paintChrome();
+  }
+
+  async function playUrl(url, startMs) {
+    if (await isPlaceholderStream(url)) { blockOfflineRoom(); return; }
     const useAv = Mly.memory.settings.useAvPlay && window.webapis && window.webapis.avplay && !/\.m3u8(\?|$)/i.test(url);
     if (useAv) {
       usingAv = true;
@@ -279,6 +331,12 @@
         hls.startLoad(startMs > 3000 ? startMs / 1000 : -1);
         video.play().catch(() => {});
       });
+      hls.on(window.Hls.Events.LEVEL_LOADED, (_, data) => {
+        const details = data && data.details;
+        if (!details || !stripchatContext(url) || details.live) return;
+        const dur = details.totalduration || 0;
+        if (dur >= 8 && dur <= 16) blockOfflineRoom();
+      });
       hls.on(window.Hls.Events.ERROR, (_, data) => {
         if (!data || !data.fatal) return;
         showError("Riproduzione HLS non riuscita (" + data.type + "). " + headerNote());
@@ -293,6 +351,10 @@
     }
     video.src = url;
     const start = () => {
+      if (stripchatContext(url) && isFinite(video.duration) && video.duration >= 8 && video.duration <= 16) {
+        blockOfflineRoom();
+        return;
+      }
       if (startMs > 3000 && startMs < (video.duration || 1e12) * 1000 * 0.9) {
         try { video.currentTime = startMs / 1000; } catch (e) {}
       }
@@ -510,7 +572,7 @@
 
   Mly.player = {
     heightOf, bestIndex, lockHighest, attach, stop, isOpen, handleKey, probeHls, paintChrome,
-    chooseQuality, nextEpisode, prevEpisode, save, press, SKIP_INTRO_MS,
+    chooseQuality, nextEpisode, prevEpisode, save, press, SKIP_INTRO_MS, isPlaceholderPlaylist, OFFLINE_ROOM,
     _frame: () => frame,
     state: () => ({ ctl, qualityOpen, subIndex, focused: (controls()[ctl] || {}).dataset ? controls()[ctl].dataset.pc : null }),
   };

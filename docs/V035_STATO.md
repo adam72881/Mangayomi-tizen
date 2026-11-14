@@ -1,8 +1,8 @@
-# v0.3.5: stato al 14/11/2026, ore 17:10 (Roma), ramo `v0.3.5-wip`
+# v0.3.5: stato al 14/11/2026, ramo `cursor/v035-tizen-5ab3`
 
-Il ramo `main` resta alla v0.3.4. Questo ramo contiene la v0.3.5 in corso: è passata nei test headless, ma **non è stata installata né provata sulla TV**.
+`main` è la v0.3.4. Questo ramo contiene la v0.3.5: è passata nei test headless, ma **non è stata installata né provata sulla TV**.
 
-## Fatto e provato headless (93 PASS, 0 FAIL: v032test 40, uninstalltest 23, playertest 30)
+## Fatto e provato headless (97 PASS, 0 FAIL: v032test 40, uninstalltest 23, playertest 34)
 
 1. **Conferma prima di disinstallare** un'estensione: "Disinstalla – Vuoi disinstallare <nome>? …", con i pulsanti Annulla e Disinstalla. Il focus parte su Annulla; Indietro chiude.
 2. **Estensioni navigabili con il telecomando**: ogni riga ha pulsanti veri (Installa / Aggiorna / Disinstalla). Destra va sul pulsante, Sinistra torna alla riga, Su/Giù cambiano riga nella stessa colonna (`data-rownav` in nav.js). Dopo un ridisegno il focus resta sullo stesso pulsante (`paint()` in ui.js).
@@ -26,8 +26,10 @@ Il ramo `main` resta alla v0.3.4. Questo ramo contiene la v0.3.5 in corso: è pa
 - **Provare tutto sulla TV** (Adam deve dare l'ok prima di installare).
 - **Prestazioni sulla TV**: le copertine più grandi caricano immagini più grandi, e l'ingrandimento sul focus va verificato a occhio. Gli spigoli sporgenti delle foto di Adam erano dovuti allo span in linea: va confermato sulla TV che sono spariti.
 - **Sottotitoli**: si usano solo tracce WebVTT fornite dall'estensione in `video.subtitles`. SRT e le tracce di sottotitoli HLS non sono gestiti.
-- **HypnoTube Popolari = Ultimi**: la causa è nell'estensione, non nell'app. Vedi `docs/HYPNOTUBE_POPOLARI.md` e la patch `docs/patches/hypnotube-1.4.3.patch` per adam72881/mangayomi-anime-extensions, non ancora unita.
-- Il file `C:\tizen-apps\MangayomiFull-0.3.5.wgt` sul PC è stato firmato **prima** delle modifiche 2-6. Va rifatto.
+- **Stripchat, segnaposto da 12 s** («Find the real thing on STRIPCHAT.COM», stanza privata o offline): il lettore non lo avvia e mostra «Stanza privata o offline». Una diretta vera (playlist senza fine) resta com'è. L'HD protetto dal sito non si aggira.
+- **HypnoTube Popolari = Ultimi**: la causa è nell'estensione, non nell'app. Vedi `docs/HYPNOTUBE_POPOLARI.md` e la patch `docs/patches/hypnotube-1.4.3.patch` per adam72881/mangayomi-anime-extensions.
+- **JAV Guru**: sui Recenti, senza gli header che la TV non può inviare, l'estensione prendeva il clip di prova da 10 s (Big Buck Bunny) al posto del master su premilkyway. La correzione è nell'estensione: si scarta quel clip e si tiene il master premilkyway/javclan, che parte con lo User-Agent di Chrome e senza header particolari.
+- Il pacchetto da installare sulla TV va rifirmato da questa versione: quello preparato prima non contiene le modifiche 2-6 né il messaggio di Stripchat.
 
 ## Test
 

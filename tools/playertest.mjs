@@ -20,6 +20,11 @@ const results = []; const ok = (name, cond, info) => { results.push((cond ? "PAS
 // v0.3.5: ingresso sorgente, copertine, lettore stile Mangayomi. Uso: node playertest.mjs <porta>
 await send("Runtime.enable");
 await waitFor("window.Mly && Mly.ui && document.querySelector('.rail-btn')"); await sleep(500);
+const ph = await ev(`(()=>{const ad='#EXTM3U\\n#EXT-X-PLAYLIST-TYPE:VOD\\n#EXTINF:4,\\na.ts\\n#EXTINF:4,\\nb.ts\\n#EXTINF:4,\\nc.ts\\n#EXT-X-ENDLIST\\n'; const live='#EXTM3U\\n#EXTINF:2,\\na.ts\\n#EXTINF:2,\\nb.ts\\n'; const p=Mly.player; return {ad:p.isPlaceholderPlaylist(ad,'https://edge-hls.doppiocdn.com/hls/1/master/1_480p.m3u8'), live:p.isPlaceholderPlaylist(live,'https://edge-hls.doppiocdn.com/hls/1/master/1.m3u8'), promo:p.isPlaceholderPlaylist('Find the real thing on STRIPCHAT.COM','https://stripchat.com/room'), altro:p.isPlaceholderPlaylist(ad,'https://cdn.example/v.m3u8'), msg:p.OFFLINE_ROOM}})()`);
+ok("Stripchat: VOD di 12 s è il segnaposto (stanza privata o offline)", ph && ph.ad === true && ph.msg === "Stanza privata o offline", ph);
+ok("Stripchat: una diretta senza fine non è il segnaposto", ph && ph.live === false, ph);
+ok("Stripchat: il testo 'Find the real thing' è il segnaposto", ph && ph.promo === true, ph);
+ok("un VOD corto di un altro sito non è il segnaposto", ph && ph.altro === false, ph);
 const awId = await ev("String((Mly.ext.installedList().find(e=>e.name==='AnimeWorld')||{}).id||'')");
 ok("AnimeWorld installata", !!awId);
 await ev("Mly.ui.selectTab('browse', true); 1"); await sleep(300);
