@@ -726,6 +726,7 @@
   // Player overlay as in Mangayomi: title and episode on top, seek bar with
   // times, then the control row (episodes, play/pause, skip intro, quality, subtitles).
   const ICON = {
+    lock: '<svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>',
     prev: '<svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zM9.5 12l8.5 6V6z"/></svg>',
     next: '<svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>',
     back10: '<svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6zM11.5 12l8.5 6V6z"/></svg>',
@@ -741,13 +742,14 @@
       '<div class="player-top"><div class="player-name">' + esc(frame.title) + '</div><div class="player-ep">' + esc(frame.episodeName) + "</div></div>" +
       '<div id="player-center" class="player-center" hidden>' + ICON.play + "</div>" +
       '<div id="player-wait" class="player-wait" role="status" aria-label="Caricamento"></div>' +
+      '<div id="player-lock" class="lock-pop" hidden></div>' +
       '<div id="player-next" class="next-pop" hidden><div class="next-title">Prossimo episodio tra <span class="next-count">10</span> s</div><div class="next-keys"><span class="skip-key">OK</span> subito · <span class="skip-key">Indietro</span> annulla</div></div>' +
       '<button type="button" id="player-skip" class="skip-pop" data-act="player-skip" hidden><span class="skip-label">Salta sigla</span><span class="skip-key">OK</span></button>' +
       '<p id="player-error" class="player-error" hidden></p>' +
       '<div class="player-bottom">' +
       '<div class="seek-row"><span id="player-cur" class="player-t">0:00</span><div class="track"><div id="player-bar" class="track-fill"></div><div id="player-knob" class="track-knob"></div></div><span id="player-dur" class="player-t">0:00</span></div>' +
       '<div id="player-ctl" class="ctl-row"><div class="ctl-group">' +
-      b("prev", "Episodio precedente", ICON.prev, " icon-only") + b("back10", "Indietro 10 s", ICON.back10, " icon-only") +
+      b("lock", "Blocca i tasti", ICON.lock, " icon-only") + b("prev", "Episodio precedente", ICON.prev, " icon-only") + b("back10", "Indietro 10 s", ICON.back10, " icon-only") +
       b("play", "Pausa", ICON.pause, " icon-only big") + b("fwd10", "Avanti 10 s", ICON.fwd10, " icon-only") + b("next", "Episodio successivo", ICON.next, " icon-only") +
       '</div><div class="ctl-group">' +
       b("skip", "+85 s  Salta intro", "", " pill-btn") + b("quality", "Video", "", " pill-btn") + b("subs", "Sottotitoli", "", " pill-btn") +

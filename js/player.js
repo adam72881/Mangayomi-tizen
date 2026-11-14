@@ -164,6 +164,7 @@
 
   function stop(noSave) {
     cancelNext();
+    locked = false;
     if (!noSave && frame && (video || usingAv)) { try { remember(false); } catch (e) {} }
     qualityOpen = false;
     ctl = -1;
@@ -628,7 +629,26 @@
     qualityIndex = frame.videoIndex;
   }
 
+  let locked = false;
+  let lastLockOk = 0;
+  let lockTimer = null;
+  function lockHint(text, ms) {
+    const el = document.getElementById("player-lock");
+    if (!el) return;
+    el.textContent = "🔒 " + text;
+    el.hidden = false;
+    clearTimeout(lockTimer);
+    lockTimer = setTimeout(() => { el.hidden = true; }, ms || 2000);
+  }
   function press(id) {
+    if (id === "lock") {
+      locked = true;
+      lastLockOk = 0;
+      ctl = -1;
+      lockHint("Bloccato · premi OK due volte per sbloccare", 2500);
+      paintChrome();
+      return;
+    }
     if (id === "prev") { if (!prevEpisode()) showError("Non c'è un episodio precedente."); }
     else if (id === "next") { if (!nextEpisode()) showError("Non c'è un episodio successivo."); }
     else if (id === "back10") seek(-10000);
@@ -664,6 +684,21 @@
   function handleKey(e) {
     if (!frame) return false;
     if (Date.now() < ignoreKeysUntil) return true;
+    // Lucchetto: i tasti non fanno niente (niente avanti/indietro per sbaglio).
+    // Si sblocca premendo OK due volte; Play/Pausa del telecomando funziona ancora.
+    if (locked) {
+      const kk = e.key, kc = e.keyCode;
+      if (kk === "MediaPlayPause" || kc === 10252) { toggle(); paintChrome(); return true; }
+      if (kk === "Enter") {
+        const now = Date.now();
+        if (now - lastLockOk < 1500) { locked = false; lockHint("Sbloccato", 1500); return true; }
+        lastLockOk = now;
+        lockHint("Premi ancora OK per sbloccare", 1600);
+        return true;
+      }
+      lockHint("Bloccato · premi OK due volte per sbloccare", 2500);
+      return true;
+    }
     const key = e.key;
     const code = e.keyCode;
     show();
@@ -732,6 +767,7 @@
   Mly.player = {
     heightOf, bestIndex, lockHighest, attach, stop, isOpen, handleKey, probeHls, paintChrome,
     chooseQuality, nextEpisode, prevEpisode, save, press, SKIP_INTRO_MS, isPlaceholderPlaylist, OFFLINE_ROOM,
+    isLocked: () => locked,
     cleanTitle, activeSkip, doSkip, loadSkipTimes, startNextCountdown, cancelNext, nextCountdown: () => (nextTimer ? nextLeft : 0),
     _frame: () => frame,
     state: () => ({ ctl, qualityOpen, subIndex, focused: (controls()[ctl] || {}).dataset ? controls()[ctl].dataset.pc : null }),

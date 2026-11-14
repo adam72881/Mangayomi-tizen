@@ -189,3 +189,8 @@ Preparazione per proporre l'app al progetto Mangayomi.
   - una serie alla volta con una pausa tra l'una e l'altra, e mai mentre è aperto il lettore;
   - i nuovi episodi compaiono in Aggiornamenti come col pulsante «Controlla aggiornamenti».
 - Test nuovi in `navtest.mjs` e `playertest.mjs`. Totale: 167 PASS, 0 FAIL.
+- **Lucchetto nel lettore** (chiesto da Adam):
+  - Nella barra dei comandi, a sinistra, c'è il pulsante 🔒 «Blocca i tasti». Con il lucchetto attivo frecce, OK e tasti di salto non fanno niente, così non si va avanti o indietro per sbaglio.
+  - Ogni tasto mostra in alto «🔒 Bloccato · premi OK due volte per sbloccare». Si sblocca con due OK entro 1,5 s.
+  - Play/Pausa del telecomando funziona ancora. Il lucchetto si toglie chiudendo il lettore.
+  - Test: con il lucchetto Destra non va avanti, un solo OK non sblocca, due OK sbloccano. Totale: 171 PASS, 0 FAIL.
