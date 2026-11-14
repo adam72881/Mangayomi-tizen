@@ -122,5 +122,13 @@ Preparazione per proporre l'app al progetto Mangayomi.
   - Serve solo a vedere la pagina: il login fatto nel browser non passa all'app.
   - Fuori dalla TV, o se il browser non si apre, compare il messaggio di prima.
 - **Guida all'installazione:** `docs/INSTALLAZIONE.md` (italiano), più un riassunto in inglese nel README.
-- **Test:** `navtest.mjs` controlla l'elenco dei repository, che con un repository che non risponde restino gli altri, la scelta della lingua, l'italiano automatico e la traduzione in inglese. Totale: 128 PASS, 0 FAIL.
+- **Test:** `navtest.mjs` controlla l'elenco dei repository, che con un repository che non risponde restino gli altri, la scelta della lingua, l'italiano automatico e la traduzione in inglese. Totale: 128 PASS, 0 FAIL (poi 132 con gli accessi dei siti).
 - Versione 0.3.7 in config.xml e in Informazioni.
+- **Accessi dei siti (sperimentale):**
+  - Nuova impostazione in Altro › Sfoglia, attiva di serie (`settings.siteCookies`).
+  - Le richieste delle estensioni usano `credentials: "include"`: il motore della TV può conservare e rimandare i cookie dei siti, così il login fatto nelle impostazioni di PMVHaven o HypnoTube può restare valido.
+  - Se una richiesta con i cookie viene rifiutata, per esempio per CORS, per quel sito si torna da soli a `omit`, come prima.
+  - Nessun controllo viene aggirato: è il login normale del sito con l'account di chi usa l'app.
+  - **Da verificare sulla TV.** In Chromium sul PC il cookie di un altro sito non viene rimandato (SameSite=Lax di default; `navtest` lo riporta come «INFO»). Un'app Tizen installata può comportarsi diversamente.
+  - Le estensioni hanno bisogno di PMVHaven 1.6.3 e HypnoTube 1.4.5 (adam72881/mangayomi-anime-extensions PR #9), che riconoscono il login anche quando il cookie non si legge.
+- Test headless: 132 PASS, 0 FAIL.

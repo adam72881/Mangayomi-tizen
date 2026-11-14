@@ -537,7 +537,9 @@
     const rows = urls.length ? urls.map((u, i) => (
       '<div class="row"><span class="row-title pad mono">' + esc(u) + '</span><button type="button" class="text-btn" data-focus data-fid="repo-del-' + i + '"' + (i === 0 ? " data-autofocus" : "") + ' data-act="del-repo" data-i="' + i + '">Rimuovi</button></div>'
     )).join("") : '<p class="row-meta pad">Nessun repository. Aggiungine uno per vedere le estensioni.</p>';
-    return screen("browse-settings", "Sfoglia", '<div class="prose"><p>Repository anime</p><p class="row-meta">Indirizzo di un anime_index.json (repository di estensioni Mangayomi).</p></div><div class="rows" data-rownav>' + rows + '</div><div class="button-row"><button type="button" class="primary" data-focus data-fid="repo-add"' + (urls.length ? "" : " data-autofocus") + ' data-act="add-repo">Aggiungi repository</button></div>', "");
+    const ck = !!Mly.memory.settings.siteCookies;
+    const cookieRow = '<div class="rows"><button type="button" class="row-main" data-focus data-fid="toggle-cookies" data-act="toggle-cookies"><span class="row-title">Accessi dei siti (sperimentale)</span><span class="row-meta">' + (ck ? "Attivo" : "Disattivo") + ' · La TV ricorda i cookie dei siti, così i login fatti nelle impostazioni di un\'estensione (es. PMVHaven, HypnoTube) possono restare validi. Nessun controllo viene aggirato.</span></button></div>';
+    return screen("browse-settings", "Sfoglia", '<div class="prose"><p>Repository anime</p><p class="row-meta">Indirizzo di un anime_index.json (repository di estensioni Mangayomi).</p></div><div class="rows" data-rownav>' + rows + '</div><div class="button-row"><button type="button" class="primary" data-focus data-fid="repo-add"' + (urls.length ? "" : " data-autofocus") + ' data-act="add-repo">Aggiungi repository</button></div>' + cookieRow, "");
   }
 
   function renderLanguage() {
@@ -1239,6 +1241,14 @@
       render();
       const next = document.querySelector('[data-fid="repo-del-' + Math.min(Number(el.dataset.i), list.length - 1) + '"]') || document.querySelector('[data-fid="repo-add"]');
       if (next) Mly.nav.focus(next);
+      return;
+    }
+    if (act === "toggle-cookies") {
+      Mly.memory.settings.siteCookies = !Mly.memory.settings.siteCookies;
+      Mly.db.saveSettings();
+      render();
+      const t = document.querySelector('[data-fid="toggle-cookies"]');
+      if (t) Mly.nav.focus(t);
       return;
     }
     if (act === "set-lang") {

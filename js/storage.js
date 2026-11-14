@@ -32,6 +32,9 @@
     repoUrls: ["https://raw.githubusercontent.com/adam72881/mangayomi-anime-extensions/main/anime_index.json"],
     // "auto" = lingua di sistema della TV; oppure "it" / "en" scelti in Altro › Lingua.
     lang: "auto",
+    // Cookie dei siti gestiti dal motore della TV (credentials: "include"): così i login fatti
+    // dalle estensioni (PMVHaven, HypnoTube…) possono restare validi. Sperimentale.
+    siteCookies: true,
     useAvPlay: false,
     categories: [],
   };

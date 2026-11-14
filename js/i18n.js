@@ -58,6 +58,7 @@
     "Nessun repository. Aggiungine uno per vedere le estensioni.": "No repositories. Add one to see extensions.",
     "Indirizzo di un anime_index.json (repository di estensioni Mangayomi).": "URL of an anime_index.json (Mangayomi extension repository).",
     "Italiano": "Italiano", "English": "English",
+    "Accessi dei siti (sperimentale)": "Site logins (experimental)",
     "Lingua della TV (automatica)": "TV language (automatic)", "Si applica subito; l'app si ricarica.": "Applied right away; the app reloads.",
   };
 
@@ -73,6 +74,7 @@
     [/^Vuoi disinstallare (.+)\? Potrai reinstallarla da Estensioni\.$/, "Uninstall $1? You can reinstall it from Extensions."],
     [/^Questa TV non ha WebView\. Apri la pagina da telefono o computer(.*)$/, "This TV has no WebView. Open the page from a phone or computer$1"],
     [/^Download non riuscito: (.+)$/, "Download failed: $1"],
+    [/^(Attivo|Disattivo) · La TV ricorda i cookie dei siti.*$/, (m, a) => (a === "Attivo" ? "On" : "Off") + " · The TV keeps site cookies, so logins made in an extension's settings (e.g. PMVHaven, HypnoTube) can stay valid. No check is bypassed."],
     [/^Impossibile caricare la pagina \((.+)$/, "Couldn't load the page ($1"],
     [/^Riproduzione HLS non riuscita \((.+)$/, "HLS playback failed ($1"],
     [/^Errore dell'estensione (.+)$/, "Extension error $1"],

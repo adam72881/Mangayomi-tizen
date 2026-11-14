@@ -73,6 +73,20 @@ ok("lingua automatica: con la TV in italiano l'app è in italiano", await ev("Ml
 await ev("Mly.memory.settings.lang='en'; Mly.i18n.start(); 1"); await sleep(200);
 ok("in inglese i testi dell'interfaccia sono tradotti", await ev("document.querySelector('.rail-btn[data-tab=library]').textContent.trim()") === "Library" && await ev("Mly.i18n.tr('Riprendi Ep. 3 · 12:04')") === "Resume Ep. 3 · 12:04", await ev("[...document.querySelectorAll('.rail-btn')].map(b=>b.textContent.trim())"));
 await ev("Mly.memory.settings.lang='auto'; Mly.db.saveSettings(); 1");
+// Accessi dei siti (cookie gestiti dal motore della TV)
+ok("Accessi dei siti: attivo di serie", await ev("Mly.memory.settings.siteCookies === true"));
+const ck = await ev("(async()=>{const c=new Mly.runtime.Client(); const r=await c.get('https://httpbin.org/cookies/set?mlytest=1'); const r2=await c.get('https://httpbin.org/cookies'); return {s1:r.statusCode, s2:r2.statusCode, body:String(r2.body).slice(0,120)}})()");
+ok("con gli accessi attivi le richieste funzionano come prima", ck && ck.s1 === 200 && ck.s2 === 200, ck);
+// Solo misura: Chromium sul PC non rimanda i cookie di un altro sito (SameSite=Lax di default).
+// Sulla TV va verificato a mano (vedi PR): un'app Tizen installata può comportarsi diversamente.
+console.log("INFO cookie rimandato dal sito di prova: " + (ck && /mlytest/.test(ck.body || "") ? "sì" : "no"));
+await ev("Mly.ui.selectTab('more', true); 1"); await sleep(300);
+await click('[data-act="push"][data-screen="browse-settings"]'); await sleep(300);
+await ev(`Mly.nav.focus(document.querySelector('[data-fid="toggle-cookies"]')); 1`); await key(13); await sleep(300);
+ok("l'interruttore si spegne e il focus resta sulla riga", await ev("Mly.memory.settings.siteCookies === false") && /toggle-cookies/.test(await ev(cur) || ""), await ev(cur));
+await key(13); await sleep(300);
+ok("e si riaccende", await ev("Mly.memory.settings.siteCookies === true"));
+await key(10009); await sleep(300);
 console.log(results.join("\n"));
 if (logs.length) console.log(logs.join("\n"));
 process.exit(0);

@@ -92,11 +92,16 @@
     return map;
   }
 
+  // Siti per cui la richiesta con i cookie fallisce (es. CORS con "*"): lì si torna a "omit".
+  const noCookieHosts = {};
+  function hostOf(u) { try { return new URL(u).host; } catch (e) { return ""; } }
+
   async function http(method, url, headers, body, options) {
     const follow = !options || options.followRedirects !== false;
     const split = splitHeaders(headers);
     if (split.stripped.length) callState.stripped.push(...split.stripped);
-    const init = { method, headers: split.ok, redirect: follow ? "follow" : "manual", credentials: "omit" };
+    const withCookies = !!(Mly.memory && Mly.memory.settings && Mly.memory.settings.siteCookies) && !noCookieHosts[hostOf(url)];
+    const init = { method, headers: split.ok, redirect: follow ? "follow" : "manual", credentials: withCookies ? "include" : "omit" };
     if (method !== "GET" && method !== "HEAD" && body != null) {
       const ctypeKey = Object.keys(split.ok).find((k) => k.toLowerCase() === "content-type");
       const ctype = ctypeKey ? split.ok[ctypeKey].toLowerCase() : "";
@@ -114,7 +119,15 @@
     init.signal = ctrl.signal;
     let response;
     try {
-      response = await fetch(url, init);
+      try {
+        response = await fetch(url, init);
+      } catch (first) {
+        if (!withCookies || (first && first.name === "AbortError")) throw first;
+        // Con i cookie la richiesta è stata rifiutata: si riprova come prima, senza cookie.
+        noCookieHosts[hostOf(url)] = true;
+        init.credentials = "omit";
+        response = await fetch(url, init);
+      }
     } catch (e) {
       clearTimeout(timer);
       noteIssue(callState.issue || "network");
