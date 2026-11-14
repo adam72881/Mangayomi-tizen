@@ -163,3 +163,7 @@ Preparazione per proporre l'app al progetto Mangayomi.
   - Lingua;
   - Informazioni: versione 0.3.7.
 - Totale test: 146 PASS, 0 FAIL.
+- **Altro › Copertine per riga** (nuova), come la «dimensione griglia» di Mangayomi:
+  - «Automatica (come Mangayomi)», con copertine larghe al massimo 150 dp, oppure da 4 a 10 per riga;
+  - vale per Libreria, sorgenti e ricerca (`settings.gridCols`, letto da `measure()` in `js/grid.js`);
+  - quattro test nuovi. Totale: 150 PASS, 0 FAIL.

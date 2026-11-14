@@ -74,7 +74,8 @@
         // Always write the size onto this host: a later screen starts from the
         // previous POSTER_W, so a "same width" check would skip it and the CSS
         // default (168px) would not match the positions.
-        cols = Math.max(1, Math.ceil((w + GAP) / (MAX_W + GAP)));
+        const fixed = Number(Mly.memory && Mly.memory.settings && Mly.memory.settings.gridCols) || 0;
+        cols = fixed >= 2 ? fixed : Math.max(1, Math.ceil((w + GAP) / (MAX_W + GAP)));
         cellW = Math.max(1, Math.floor((w - (cols - 1) * GAP) / cols));
         posterH = Math.round(cellW / ASPECT);
         POSTER_W = cellW;

@@ -35,6 +35,8 @@
     // Cookie dei siti gestiti dal motore della TV (credentials: "include"): così i login fatti
     // dalle estensioni (PMVHaven, HypnoTube…) possono restare validi. Sperimentale.
     siteCookies: true,
+    // Copertine per riga nelle griglie: 0 = automatico come Mangayomi (max 150 dp), oppure 4–10.
+    gridCols: 0,
     useAvPlay: false,
     categories: [],
   };

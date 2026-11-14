@@ -381,6 +381,7 @@
     else if (frame.name === "browse-settings") paint(renderBrowseSettings(), null);
     else if (frame.name === "language") paint(renderLanguage(), null);
     else if (frame.name === "stats") paint(renderStats(), null);
+    else if (frame.name === "grid-cols") paint(renderGridCols(), null);
     else if (frame.name === "categories") paint(renderCategories(), null);
     else paint(renderRoot(), null);
   }
@@ -516,6 +517,7 @@
       ["player-settings", "Lettore"],
       ["browse-settings", "Sfoglia"],
       ["language", "Lingua"],
+      ["grid-cols", "Copertine per riga"],
       ["stats", "Statistiche"],
       ["about", "Informazioni"],
     ];
@@ -567,6 +569,16 @@
     const h = Math.floor(min / 60), m = min % 60;
     if (h < 24) return h + " h " + m + " min";
     return Math.floor(h / 24) + " g " + (h % 24) + " h";
+  }
+
+  // Come la «dimensione griglia» di Mangayomi: automatica o un numero fisso di copertine.
+  function renderGridCols() {
+    const cur = Number(Mly.memory.settings.gridCols) || 0;
+    const opts = [0, 4, 5, 6, 7, 8, 9, 10];
+    const body = '<div class="rows">' + opts.map((n) => (
+      '<button type="button" class="row-main" data-focus data-fid="cols-' + n + '"' + (n === cur ? " data-autofocus" : "") + ' data-act="set-cols" data-n="' + n + '"><span class="row-title">' + (n === cur ? "✓ " : "") + (n ? n + " per riga" : "Automatica (come Mangayomi)") + "</span></button>"
+    )).join("") + "</div>";
+    return screen("grid-cols", "Copertine per riga", body, "");
   }
 
   function renderStats() {
@@ -1358,6 +1370,14 @@
     if (act === "noop") return;
     if (act === "push") { stack.push({ name: el.dataset.screen }); render(); return; }
     if (act === "stats-refresh") { render(); return; }
+    if (act === "set-cols") {
+      Mly.memory.settings.gridCols = Number(el.dataset.n) || 0;
+      Mly.db.saveSettings();
+      render();
+      const f = document.querySelector('[data-fid="cols-' + Mly.memory.settings.gridCols + '"]');
+      if (f) Mly.nav.focus(f);
+      return;
+    }
     if (act === "toggle-av") { Mly.memory.settings.useAvPlay = !Mly.memory.settings.useAvPlay; Mly.db.saveSettings(); render(); return; }
     if (act === "add-repo") {
       openOsk({ title: "Repository anime", value: "https://", apply: (value) => {

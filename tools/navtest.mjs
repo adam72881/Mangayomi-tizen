@@ -151,6 +151,21 @@ const st2 = await ev("[...document.querySelectorAll('.stat')].map(x=>x.innerText
 ok("Statistiche: contano serie, episodi visti e tempo guardato", st2.some(v=>/^1 Serie iniziate/.test(v)) && st2.some(v=>/^2 Episodi visti/.test(v)) && st2.some(v=>/^34 min Tempo guardato/.test(v)) && /AnimeWorld/.test(await ev("document.querySelector('.screen').innerText")), st2);
 await ev(`(()=>{ delete Mly.memory.progress['${awId}|/stat-test']; return 1 })()`);
 await key(10009); await sleep(300);
+// Altro › Copertine per riga
+await ev("Mly.ui.selectTab('more', true); 1"); await sleep(300);
+await click('[data-act="push"][data-screen="grid-cols"]'); await sleep(300);
+ok("Altro › Copertine per riga: Automatica e 4–10", await ev("[...document.querySelectorAll('[data-act=set-cols]')].map(b=>b.dataset.n).join(',')") === "0,4,5,6,7,8,9,10");
+await click('[data-act="set-cols"][data-n="8"]'); await sleep(200);
+ok("la scelta si salva e il focus resta sulla riga", await ev("Mly.memory.settings.gridCols") === 8 && /^cols-8/.test(await ev(cur) || ""), await ev(cur));
+await openAw();
+const g8 = await ev(gridGeo);
+ok("con 8 per riga la griglia della sorgente ha 8 copertine per riga", g8.cols === 8 && g8.var === g8.w + "px", g8);
+await key(10009); await sleep(300);
+await ev("Mly.memory.settings.gridCols = 0; Mly.db.saveSettings(); 1");
+await openAw();
+const gA = await ev(gridGeo);
+ok("con Automatica torna come Mangayomi (5-7 per riga)", gA.cols >= 5 && gA.cols <= 7, gA);
+await key(10009); await sleep(300);
 console.log(results.join("\n"));
 if (logs.length) console.log(logs.join("\n"));
 process.exit(0);
