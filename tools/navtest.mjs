@@ -177,6 +177,29 @@ await openAw();
 const gA = await ev(gridGeo);
 ok("con Automatica torna come Mangayomi (5-7 per riga)", gA.cols >= 5 && gA.cols <= 7, gA);
 await key(10009); await sleep(300);
+// Indietro sulla schermata principale
+await ev("Mly.ui.selectTab('more', true); 1"); await sleep(300);
+await key(10009); await sleep(300);
+ok("Indietro da Altro torna alla Libreria", await ev("(Mly.nav.current()||{}).dataset.tab") === "library" && await ev("!!document.querySelector('.rail-btn.is-selected[data-tab=library]')"));
+await key(10009); await sleep(300);
+ok("Indietro dalla Libreria chiede «Vuoi uscire da Mangayomi?» con il focus su Annulla", /Vuoi uscire da Mangayomi/.test(await ev("(document.getElementById('dialog')||{}).innerText||''")) && /Annulla/.test(await ev(cur) || ""), await ev(cur));
+await key(10009); await sleep(300);
+ok("Indietro sul messaggio lo chiude senza uscire", await ev("!document.getElementById('dialog') && !!document.querySelector('.rail-btn')"));
+// Numeri sulle copertine (solo Libreria)
+await ev(`(()=>{ Mly.memory.library.push({id:'${awId}|/badge', sourceId:'${awId}', link:'/badge', name:'Serie numeri', imageUrl:'', categories:[], chapters:[{name:'Ep 1',url:'/b1'},{name:'Ep 2',url:'/b2'},{name:'Ep 3',url:'/b3'}], addedAt: Date.now()}); Mly.memory.progress['${awId}|/badge']={watched:{'/b1':true}}; return 1 })()`);
+await ev("Mly.ui.selectTab('history', true); 1"); await sleep(200); await ev("Mly.ui.selectTab('library', true); 1"); await sleep(500);
+ok("Libreria: sulla copertina il numero di episodi non visti (3 episodi, 1 visto → 2)", await ev("(()=>{const c=[...document.querySelectorAll('#grid-library .vcell:not([hidden])')].find(x=>/Serie numeri/.test(x.textContent)); const b=c&&c.querySelector('.vcell-badge'); return !!b && !b.hidden && b.textContent==='2'})()"));
+await openAw();
+ok("nelle sorgenti le copertine non hanno numeri", await ev("[...document.querySelectorAll('#grid-source .vcell-badge')].every(b=>b.hidden)"));
+await key(10009); await sleep(300);
+// Aggiornamento automatico della Libreria
+await ev("localStorage.removeItem('mly.lastAutoUpdate'); Mly.ui.scheduleAutoUpdate(50); 1"); await sleep(400);
+const t1 = await ev("Number(localStorage.getItem('mly.lastAutoUpdate'))");
+ok("aggiornamento automatico: parte da solo con la Libreria non vuota", t1 > 0, t1);
+await ev("Mly.ui.scheduleAutoUpdate(50); 1"); await sleep(400);
+ok("aggiornamento automatico: non riparte prima di 6 ore", await ev("Number(localStorage.getItem('mly.lastAutoUpdate'))") === t1);
+await waitFor("!document.querySelector('.rail-btn') || true", 1000);
+await ev(`(()=>{ Mly.memory.library=Mly.memory.library.filter(m=>m.link!=='/badge'); delete Mly.memory.progress['${awId}|/badge']; Mly.memory.updates=Mly.memory.updates.filter(u=>u.seriesLink!=='/badge'); Mly.db.saveLibrary(); localStorage.removeItem('mly.lastAutoUpdate'); return 1 })()`);
 console.log(results.join("\n"));
 if (logs.length) console.log(logs.join("\n"));
 process.exit(0);

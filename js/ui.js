@@ -298,12 +298,18 @@
       list = list.filter((item) => String(item.name || "").toLowerCase().includes(q));
     }
     list.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
-    return list.map((item) => ({
-      name: item.name,
-      imageUrl: item.imageUrl,
-      link: item.link,
-      sourceId: item.sourceId,
-    }));
+    return list.map((item) => {
+      // Come in Mangayomi: sulla copertina il numero di episodi non ancora visti.
+      const prog = progressOf(item.sourceId, item.link);
+      const left = (item.chapters || []).filter((ch) => ch && ch.url && !isDone(prog, ch.url)).length;
+      return {
+        name: item.name,
+        imageUrl: item.imageUrl,
+        link: item.link,
+        sourceId: item.sourceId,
+        badge: left > 0 ? String(left) : "",
+      };
+    });
   }
   function historyCards() {
     return visibleHistory().map((item) => ({
@@ -735,6 +741,7 @@
       '<div class="player-top"><div class="player-name">' + esc(frame.title) + '</div><div class="player-ep">' + esc(frame.episodeName) + "</div></div>" +
       '<div id="player-center" class="player-center" hidden>' + ICON.play + "</div>" +
       '<div id="player-wait" class="player-wait" role="status" aria-label="Caricamento"></div>' +
+      '<div id="player-next" class="next-pop" hidden><div class="next-title">Prossimo episodio tra <span class="next-count">10</span> s</div><div class="next-keys"><span class="skip-key">OK</span> subito · <span class="skip-key">Indietro</span> annulla</div></div>' +
       '<button type="button" id="player-skip" class="skip-pop" data-act="player-skip" hidden><span class="skip-label">Salta sigla</span><span class="skip-key">OK</span></button>' +
       '<p id="player-error" class="player-error" hidden></p>' +
       '<div class="player-bottom">' +
@@ -1178,6 +1185,12 @@
     root.dialog = { title, body };
     paintDialog();
   }
+  function exitApp() {
+    try {
+      if (window.tizen && tizen.application) { tizen.application.getCurrentApplication().exit(); return; }
+    } catch (e) {}
+    try { window.close(); } catch (e) {}
+  }
   function openConfirm(title, body, okLabel, onOk) {
     rememberFocus();
     root.dialog = { title, body, confirm: true, okLabel, onOk };
@@ -1254,11 +1267,17 @@
     Mly.player.attach(frame);
   }
 
-  async function checkUpdates() {
+  async function checkUpdates(opts) {
     if (root.checking) return;
     root.checking = true;
     if (!top() && root.tab === "updates") render();
+    const auto = !!opts && opts.auto;
     for (const item of Mly.memory.library) {
+      if (auto) {
+        // In sottofondo: una serie alla volta, con una pausa, e mai durante un video.
+        while (Mly.player.isOpen()) await new Promise((r) => setTimeout(r, 5000));
+        await new Promise((r) => setTimeout(r, 400));
+      }
       try {
         const manga = await Mly.ext.call(item.sourceId, "getDetail", (e) => e.getDetail(item.link));
         const chapters = chaptersOf(manga);
@@ -1740,7 +1759,17 @@
       root.migrate.step -= 1;
       root.migrate.loading = false;
       render();
+      return;
     }
+    // Schermata principale: da un'altra scheda si torna alla Libreria; dalla
+    // Libreria Indietro chiede se uscire dall'app (focus su «Annulla»).
+    if (root.tab !== "library") {
+      selectTab("library", false);
+      const rail = document.querySelector('.rail-btn[data-tab="library"]');
+      if (rail) Mly.nav.focus(rail);
+      return;
+    }
+    openConfirm("Esci", "Vuoi uscire da Mangayomi?", "Esci", exitApp);
   }
 
   function onKey(e) {
@@ -1802,6 +1831,20 @@
     }
   }
 
+  // Aggiornamento automatico della Libreria: 20 s dopo l'avvio (l'app si apre
+  // subito), al massimo ogni 6 ore, in sottofondo.
+  function scheduleAutoUpdate(delayMs) {
+    setTimeout(() => {
+      try {
+        if (!Mly.memory.library.length) return;
+        const last = Number(localStorage.getItem("mly.lastAutoUpdate")) || 0;
+        if (Date.now() - last < 6 * 3600 * 1000) return;
+        localStorage.setItem("mly.lastAutoUpdate", String(Date.now()));
+      } catch (e) { return; }
+      checkUpdates({ auto: true });
+    }, delayMs == null ? 20000 : delayMs);
+  }
+
   function start() {
     const rail = ["library", "updates", "history", "browse", "more"].map((id) => {
       const label = { library: "Libreria", updates: "Aggiornamenti", history: "Cronologia", browse: "Sfoglia", more: "Altro" }[id];
@@ -1819,7 +1862,8 @@
     } catch (e) {}
     document.getElementById("app").addEventListener("click", onClick);
     selectTab("library", false);
+    scheduleAutoUpdate();
   }
 
-  Mly.ui = { start, selectTab, back, rememberPlayback, playEpisode, qualityRows, nextIndex, prevIndex, chronoOrder, epNumber, resumeChoice, isAdult: () => adult };
+  Mly.ui = { start, selectTab, back, rememberPlayback, playEpisode, qualityRows, nextIndex, prevIndex, chronoOrder, epNumber, resumeChoice, isAdult: () => adult, scheduleAutoUpdate };
 })();

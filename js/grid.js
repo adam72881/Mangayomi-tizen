@@ -100,7 +100,7 @@
         el.innerHTML = '<span class="vrow-thumb"><img alt="" width="96" height="54" decoding="async"></span><span class="vrow-text"><span class="vrow-title"></span><span class="vrow-meta"></span></span>';
       } else {
         // Mangayomi compact grid: rounded cover, title over a bottom gradient (cover_view_widget.dart, bottom_text_widget.dart).
-        el.innerHTML = '<span class="vcell-card"><span class="vcell-img"><img alt="" decoding="async"><span class="vcell-shade"></span><span class="vcell-title"></span></span></span>';
+        el.innerHTML = '<span class="vcell-card"><span class="vcell-img"><img alt="" decoding="async"><span class="vcell-shade"></span><span class="vcell-title"></span><span class="vcell-badge" hidden></span></span></span>';
       }
       const img = el.querySelector("img");
       img.addEventListener("error", () => {
@@ -166,6 +166,8 @@
             el.dataset.i = String(i);
             const title = el.querySelector(variant === "rows" ? ".vrow-title" : ".vcell-title");
             title.textContent = item.name || "";
+            const badge = el.querySelector(".vcell-badge");
+            if (badge) { badge.textContent = item.badge || ""; badge.hidden = !item.badge; }
             if (variant === "rows") {
               el.querySelector(".vrow-meta").textContent = item.meta || "";
               el.classList.toggle("is-watched", !!item.watched);

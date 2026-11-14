@@ -178,3 +178,14 @@ Preparazione per proporre l'app al progetto Mangayomi.
   - L'ordine vero viene ricavato dai numeri o dalle date degli episodi, quindi funziona anche con sorgenti che li elencano al contrario. Premendo un episodio parte sempre quello giusto (`item.index`).
   - Col D-pad: Su dalla lista va sul pulsante, Giù dal pulsante torna alla lista.
   - Quattro test nuovi. Totale: 158 PASS, 0 FAIL.
+- **Indietro sulla schermata principale** (chiesto da Adam): da Aggiornamenti, Cronologia, Sfoglia o Altro si torna prima alla Libreria. Dalla Libreria compare «Esci – Vuoi uscire da Mangayomi?», con il focus su «Annulla»; «Esci» chiude l'app (`tizen.application.getCurrentApplication().exit()`).
+- **Prossimo episodio automatico**:
+  - parte **solo alla fine vera del file**, quindi dopo eventuali scene dopo la sigla finale;
+  - compare un conto alla rovescia di 10 s, «Prossimo episodio tra N s»: OK lo fa partire subito, Indietro o una freccia lo annullano e si resta nel lettore;
+  - «Salta finale» (AniSkip) porta alla fine della sigla, non al prossimo episodio, così le scene dopo i titoli non si perdono.
+- **Numeri sulle copertine, solo in Libreria**: episodi non ancora visti, come in Mangayomi. Nelle sorgenti non compaiono.
+- **Aggiornamento automatico della Libreria**:
+  - parte 20 s dopo l'avvio (l'app si apre subito), al massimo ogni 6 ore;
+  - una serie alla volta con una pausa tra l'una e l'altra, e mai mentre è aperto il lettore;
+  - i nuovi episodi compaiono in Aggiornamenti come col pulsante «Controlla aggiornamenti».
+- Test nuovi in `navtest.mjs` e `playertest.mjs`. Totale: 167 PASS, 0 FAIL.

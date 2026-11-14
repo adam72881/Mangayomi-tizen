@@ -83,6 +83,12 @@ await key(13); await sleep(700);
 const dopoSkip = await ev("document.getElementById('player-video').currentTime");
 ok("OK durante la sigla la salta (arriva a fine sigla, senza mettere in pausa)", dopoSkip >= 118 && dopoSkip < 135 && await ev("!document.getElementById('player-video').paused"), dopoSkip);
 ok("finita la sigla il pulsante sparisce", await ev("document.getElementById('player-skip').hidden"));
+// Episodio successivo: conto alla rovescia solo alla fine vera, Indietro annulla, OK subito
+await ev("Mly.player.startNextCountdown(); 1"); await sleep(1300);
+const cd = await ev("({vis:!document.getElementById('player-next').hidden, n:Mly.player.nextCountdown(), txt:document.getElementById('player-next').innerText})");
+ok("fine episodio: compare «Prossimo episodio tra N s» e conta alla rovescia", cd.vis && cd.n > 0 && cd.n < 10 && /Prossimo episodio tra/.test(cd.txt), cd);
+await key(10009); await sleep(300);
+ok("Indietro annulla il prossimo episodio e resta nel lettore", await ev("document.getElementById('player-next').hidden && Mly.player.nextCountdown()===0 && Mly.player.isOpen()"));
 await ev("(()=>{ Mly.player._frame().skipTimes=[]; document.getElementById('player-video').currentTime=1; return 1 })()");
 await waitFor("(()=>{const v=document.getElementById('player-video'); return v.readyState>=3 && !v.paused && document.getElementById('player-wait').hidden})()", 20000); await sleep(300);
 

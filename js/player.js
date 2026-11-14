@@ -163,6 +163,7 @@
   }
 
   function stop(noSave) {
+    cancelNext();
     if (!noSave && frame && (video || usingAv)) { try { remember(false); } catch (e) {} }
     qualityOpen = false;
     ctl = -1;
@@ -480,11 +481,41 @@
   function nextOf() {
     return frame && Mly.ui && Mly.ui.nextIndex ? Mly.ui.nextIndex(frame.episodes, frame.episodeIndex) : -1;
   }
+  // Fine episodio: solo alla fine vera del file (quindi dopo eventuali scene
+  // dopo la sigla finale) parte un conto alla rovescia di 10 s per il prossimo
+  // episodio. OK lo fa partire subito, Indietro lo annulla.
+  let nextTimer = null;
+  let nextLeft = 0;
+  function cancelNext() {
+    clearInterval(nextTimer);
+    nextTimer = null;
+    nextLeft = 0;
+    const el = document.getElementById("player-next");
+    if (el) el.hidden = true;
+  }
+  function paintNext() {
+    const el = document.getElementById("player-next");
+    if (!el) return;
+    el.hidden = !nextTimer;
+    const n = el.querySelector(".next-count");
+    if (n) n.textContent = String(nextLeft);
+  }
+  function startNextCountdown() {
+    cancelNext();
+    nextLeft = 10;
+    nextTimer = setInterval(() => {
+      nextLeft--;
+      if (nextLeft <= 0) { cancelNext(); nextEpisode(true); return; }
+      paintNext();
+    }, 1000);
+    paintNext();
+    show();
+  }
   function onEnded() {
     // An empty video element fires "ended" while the real file is still loading.
     if (!played) return;
     remember(true);
-    if (nextOf() >= 0) nextEpisode(true);
+    if (nextOf() >= 0) startNextCountdown();
   }
 
   function attach(next) {
@@ -636,6 +667,10 @@
     const key = e.key;
     const code = e.keyCode;
     show();
+    if (nextTimer) {
+      if (key === "Enter") { cancelNext(); nextEpisode(true); return true; }
+      if (isBackKey(e) || key.indexOf("Arrow") === 0) { cancelNext(); paintChrome(); return true; }
+    }
     if (qualityOpen) {
       const n = frame.videos.length;
       if (key === "ArrowDown") qualityIndex = Math.min(n - 1, qualityIndex + 1);
@@ -697,7 +732,7 @@
   Mly.player = {
     heightOf, bestIndex, lockHighest, attach, stop, isOpen, handleKey, probeHls, paintChrome,
     chooseQuality, nextEpisode, prevEpisode, save, press, SKIP_INTRO_MS, isPlaceholderPlaylist, OFFLINE_ROOM,
-    cleanTitle, activeSkip, doSkip, loadSkipTimes,
+    cleanTitle, activeSkip, doSkip, loadSkipTimes, startNextCountdown, cancelNext, nextCountdown: () => (nextTimer ? nextLeft : 0),
     _frame: () => frame,
     state: () => ({ ctl, qualityOpen, subIndex, focused: (controls()[ctl] || {}).dataset ? controls()[ctl].dataset.pc : null }),
   };
