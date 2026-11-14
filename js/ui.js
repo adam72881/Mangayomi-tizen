@@ -380,6 +380,7 @@
     else if (frame.name === "player-settings") paint(renderPlayerSettings(), null);
     else if (frame.name === "browse-settings") paint(renderBrowseSettings(), null);
     else if (frame.name === "language") paint(renderLanguage(), null);
+    else if (frame.name === "stats") paint(renderStats(), null);
     else if (frame.name === "categories") paint(renderCategories(), null);
     else paint(renderRoot(), null);
   }
@@ -515,12 +516,73 @@
       ["player-settings", "Lettore"],
       ["browse-settings", "Sfoglia"],
       ["language", "Lingua"],
+      ["stats", "Statistiche"],
       ["about", "Informazioni"],
     ];
     const body = '<div class="rows">' + rows.map((r, i) => (
       '<button type="button" class="row-main" data-focus' + (i === 0 ? " data-autofocus" : "") + ' data-act="push" data-screen="' + r[0] + '"><span class="row-title">' + r[1] + "</span></button>"
     )).join("") + "</div>";
     return screen("more", "Altro", body, "");
+  }
+
+  // Statistiche come in Mangayomi, calcolate dai dati salvati su questa TV.
+  // Con la modalità adulti nascosta, le sorgenti per adulti non vengono contate.
+  function statsData() {
+    const lib = visibleLibrary();
+    const okSource = (id) => adult || !nsfwSource(id);
+    let series = 0, episodes = 0, watchedMs = 0, last = 0;
+    const perSource = {};
+    Object.keys(Mly.memory.progress || {}).forEach((key) => {
+      const sourceId = key.split("|")[0];
+      if (!okSource(sourceId)) return;
+      const p = Mly.memory.progress[key] || {};
+      const seen = Object.keys(p.watched || {}).filter((u) => p.watched[u]).length;
+      const pos = p.positions || {};
+      let ms = 0;
+      Object.keys(pos).forEach((u) => {
+        const x = pos[u] || {};
+        const d = Number(x.durationMs) || 0, at = Number(x.positionMs) || 0;
+        ms += d ? Math.min(at, d) : at;
+      });
+      if (!seen && !ms) return;
+      series++;
+      episodes += seen;
+      watchedMs += ms;
+      last = Math.max(last, Number(p.at) || 0);
+      perSource[sourceId] = (perSource[sourceId] || 0) + Math.max(seen, Object.keys(pos).length);
+    });
+    const top = Object.keys(perSource).sort((a, b) => perSource[b] - perSource[a]).slice(0, 3)
+      .map((id) => ({ name: (sourceOf(id) || {}).name || id, n: perSource[id] }));
+    return {
+      library: lib.length,
+      completed: lib.filter((m) => Number(m.status) === 1).length,
+      series, episodes, watchedMs, last, top,
+      sources: visibleSources().length,
+    };
+  }
+
+  function fmtDuration(ms) {
+    const min = Math.round(ms / 60000);
+    if (min < 60) return min + " min";
+    const h = Math.floor(min / 60), m = min % 60;
+    if (h < 24) return h + " h " + m + " min";
+    return Math.floor(h / 24) + " g " + (h % 24) + " h";
+  }
+
+  function renderStats() {
+    const st = statsData();
+    const card = (value, label) => '<div class="stat"><div class="stat-value">' + esc(String(value)) + '</div><div class="stat-label">' + esc(label) + "</div></div>";
+    const cards = '<div class="stats-grid">' +
+      card(st.library, "Titoli in libreria") + card(st.series, "Serie iniziate") + card(st.episodes, "Episodi visti") +
+      card(fmtDuration(st.watchedMs), "Tempo guardato") + card(st.sources, "Sorgenti installate") +
+      card(st.last ? new Date(st.last).toLocaleDateString(Mly.i18n && Mly.i18n.lang() === "en" ? "en-GB" : "it-IT", { day: "numeric", month: "short", year: "numeric" }) : "—", "Ultima visione") +
+      "</div>";
+    const top = st.top.length ? '<h2 class="stats-head">Sorgenti più guardate</h2><div class="rows">' + st.top.map((t, i) => (
+      '<div class="row-main static' + (i === 0 ? "" : "") + '"><span class="row-title">' + (i + 1) + ". " + esc(t.name) + '</span><span class="row-meta">' + t.n + " episodi</span></div>"
+    )).join("") + "</div>" : '<p class="row-meta">Guarda qualche episodio per vedere qui le sorgenti più usate.</p>';
+    // Un pulsante per far partire il focus e poter tornare indietro col telecomando.
+    const body = cards + top + '<div class="button-row"><button type="button" class="primary" data-focus data-autofocus data-act="stats-refresh">Aggiorna</button></div>';
+    return screen("stats", "Statistiche", body, "");
   }
 
   function renderAbout() {
@@ -1295,6 +1357,7 @@
     if (act === "reload-index") { root.extIndex = null; ensureIndex(); return; }
     if (act === "noop") return;
     if (act === "push") { stack.push({ name: el.dataset.screen }); render(); return; }
+    if (act === "stats-refresh") { render(); return; }
     if (act === "toggle-av") { Mly.memory.settings.useAvPlay = !Mly.memory.settings.useAvPlay; Mly.db.saveSettings(); render(); return; }
     if (act === "add-repo") {
       openOsk({ title: "Repository anime", value: "https://", apply: (value) => {

@@ -152,3 +152,14 @@ Preparazione per proporre l'app al progetto Mangayomi.
   - testo di base a 22 px.
 
   Sono solo regole CSS in fondo a `css/app.css`. Totale test: 139 PASS, 0 FAIL.
+- **Altro › Statistiche** (nuova):
+  - Sei riquadri: titoli in libreria, serie iniziate, episodi visti, tempo guardato, sorgenti installate, ultima visione. Sotto, le tre sorgenti più guardate.
+  - I dati sono quelli salvati sulla TV (libreria e progressi). Con la modalità adulti nascosta, le sorgenti per adulti non vengono contate.
+  - «Aggiorna» ricalcola. Tradotta anche in inglese.
+- **Controllo delle voci già presenti in Altro**, con nuovi test che usano il D-pad e la tastiera a schermo; funzionano tutte:
+  - Categorie: crea, assegna a un titolo, filtra la Libreria, rimuovi (anche dai titoli);
+  - Lettore: interruttore AVPlay salvato;
+  - Sfoglia: repository e accessi dei siti;
+  - Lingua;
+  - Informazioni: versione 0.3.7.
+- Totale test: 146 PASS, 0 FAIL.

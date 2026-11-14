@@ -177,3 +177,10 @@ html, body { font-size: 22px; }
 .empty .primary { margin-top: 10px; padding: 16px 34px; font-size: 24px; }
 .empty-mark svg { width: 72px; height: 72px; fill: #d0bcff; }
 .query-line { font-size: 22px; }
+
+/* Statistiche */
+.stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 18px; margin-bottom: 26px; }
+.stat { background: #211f26; border-radius: 20px; padding: 26px 28px; }
+.stat-value { font-size: 52px; font-weight: 700; color: #d0bcff; line-height: 1.1; }
+.stat-label { margin-top: 8px; font-size: 22px; color: #cac4d0; }
+.stats-head { font-size: 30px; margin: 0 0 14px; }
