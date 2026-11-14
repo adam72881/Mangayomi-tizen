@@ -566,7 +566,13 @@
       "</div>";
     const tools = '<div class="top-actions"><button type="button" class="text-btn" data-focus data-fid="src-search" data-act="src-search">Cerca</button><button type="button" class="text-btn" data-focus data-fid="src-filter" data-act="src-filter">Filtri</button><button type="button" class="text-btn" data-focus data-act="open-prefs" data-id="' + esc(frame.sourceId) + '">Impostazioni</button><button type="button" class="text-btn" data-focus data-act="no-webview">Web</button></div>';
     let body = tabs;
-    if (frame.tab === "search") body += '<p class="query-line">Ricerca: ' + esc(frame.query || "(filtri)") + "</p>";
+    if (frame.tab === "search") {
+      const parts = [];
+      if (frame.query) parts.push("«" + frame.query + "»");
+      const changed = filterSummary(frame);
+      if (changed) parts.push(changed);
+      body += '<p class="query-line">Ricerca: ' + esc(parts.join(" · ") || "tutti i risultati") + "</p>";
+    }
     if (frame.loading) body += '<div class="empty"><h2>Caricamento…</h2></div>';
     else if (frame.error) body += '<div class="empty"><h2>Impossibile caricare la sorgente</h2><p>' + esc(frame.error) + '</p><button type="button" class="primary" data-focus data-fid="src-retry" data-autofocus data-act="src-retry">Riprova</button></div>';
     else if (!frame.items.length) body += '<div class="empty"><h2>Nessun risultato</h2></div>';
@@ -768,6 +774,42 @@
     if (scroller && scrollTop) scroller.scrollTop = scrollTop;
     Mly.nav.focus((keep && el.querySelector(keep)) || el.querySelector("[data-autofocus]"));
   }
+  // Riassunto dei filtri cambiati rispetto a quelli predefiniti della sorgente,
+  // per la riga «Ricerca: …» (es. «Ordine: Ultime aggiunte · Genere: Azione»).
+  function filterSummary(frame) {
+    const now = frame.filters || [];
+    if (!now.length) return "";
+    let base = [];
+    try { base = Mly.ext.getFilters(frame.sourceId) || []; } catch (e) { base = []; }
+    const out = [];
+    now.forEach((f, i) => {
+      const d = base[i] || {};
+      const type = f.type_name || "";
+      if (type === "SelectFilter") {
+        if (f.state !== (d.state || 0)) { const o = (f.values || [])[f.state]; if (o) out.push(f.name + ": " + o.name); }
+      } else if (type === "TextFilter") {
+        if (f.state && f.state !== d.state) out.push(f.name + ": " + f.state);
+      } else if (type === "CheckBoxFilter") {
+        if (!!f.state !== !!d.state) out.push((f.state ? "" : "no ") + f.name);
+      } else if (type === "TriStateFilter") {
+        if ((f.state || 0) !== (d.state || 0)) out.push((f.state === 2 ? "senza " : "") + f.name);
+      } else if (type === "SortFilter") {
+        const st = f.state || {}, ds = d.state || {};
+        if (st.index !== ds.index || st.ascending !== ds.ascending) {
+          const o = (f.values || [])[st.index || 0];
+          out.push((f.name || "Ordine") + ": " + ((o && (o.name || o)) || "") + (st.ascending ? " ↑" : " ↓"));
+        }
+      } else if (type === "GroupFilter") {
+        const on = (f.state || []).filter((x, j) => {
+          const ds = ((d.state || [])[j] || {}).state;
+          return x && x.state && x.state !== ds;
+        }).map((x) => (x.state === 2 ? "senza " : "") + x.name);
+        if (on.length) out.push(f.name + ": " + on.join(", "));
+      }
+    });
+    return out.join(" · ");
+  }
+
   function filterBlock(f, i) {
     const type = f.type_name || "";
     if (type === "HeaderFilter") return '<p class="filter-note">' + esc(f.name || "") + "</p>";

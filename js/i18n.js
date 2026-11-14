@@ -74,6 +74,8 @@
     [/^Vuoi disinstallare (.+)\? Potrai reinstallarla da Estensioni\.$/, "Uninstall $1? You can reinstall it from Extensions."],
     [/^Questa TV non ha WebView\. Apri la pagina da telefono o computer(.*)$/, "This TV has no WebView. Open the page from a phone or computer$1"],
     [/^Download non riuscito: (.+)$/, "Download failed: $1"],
+    [/^Ricerca: tutti i risultati$/, "Search: all results"],
+    [/^Ricerca: (.+)$/, "Search: $1"],
     [/^(Attivo|Disattivo) · La TV ricorda i cookie dei siti.*$/, (m, a) => (a === "Attivo" ? "On" : "Off") + " · The TV keeps site cookies, so logins made in an extension's settings (e.g. PMVHaven, HypnoTube) can stay valid. No check is bypassed."],
     [/^Impossibile caricare la pagina \((.+)$/, "Couldn't load the page ($1"],
     [/^Riproduzione HLS non riuscita \((.+)$/, "HLS playback failed ($1"],

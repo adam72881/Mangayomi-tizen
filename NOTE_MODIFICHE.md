@@ -136,3 +136,4 @@ Preparazione per proporre l'app al progetto Mangayomi.
   - Scegliendo un'opzione (es. «Ultime aggiunte») il pannello si ridisegna ma il focus resta su quell'opzione, alla stessa altezza; prima saltava su «Cerca».
   - Riaprendo Filtri si ritrovano le scelte già applicate, non quelle predefinite. «Azzera» le riporta come all'inizio.
   - Due test nuovi in `navtest.mjs`. Totale: 134 PASS, 0 FAIL.
+- **Riga «Ricerca»:** invece di «(filtri)» mostra cosa è cambiato rispetto ai filtri predefiniti della sorgente, per esempio «Ricerca: Ordine: Ultime aggiunte · Genere: Azione». Se c'è anche un testo cercato compare tra «». Senza testo né filtri cambiati dice «tutti i risultati». Tradotta anche in inglese. Totale test: 135 PASS, 0 FAIL.
