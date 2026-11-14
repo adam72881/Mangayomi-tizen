@@ -17,6 +17,7 @@
    - La qualità si sceglie da un pannello in basso, con testo grande e la spunta sulla qualità attuale.
    - I comandi si nascondono dopo 3 s durante la riproduzione e restano visibili in pausa o con un menu aperto.
    - Tasti: Sinistra/Destra ±10 s, OK pausa, Indietro chiude. Giù apre la barra in basso sul tasto Play, come in Mangayomi. Nella barra Sinistra/Destra si spostano, OK preme, Su o Indietro escono. Funzionano anche i tasti multimediali.
+   - Mentre il file carica si vede una rotella. All'apertura non compare «Non c'è un episodio successivo»: quel testo esce solo se si chiede l'episodio dopo e non c'è.
 7. **Icona**: l'icona ufficiale di Aniyomi, cioè il vettoriale del launcher `app/src/main/res/drawable/ic_launcher_foreground.xml` di aniyomiorg/aniyomi.
    - Convertita in `icon-source.svg` e poi in `icon.png` 512x512 con sfondo trasparente.
    - Licenza Apache-2.0: `THIRD_PARTY_NOTICES.md` e `LICENSE-ANIYOMI-APACHE-2.0.txt`.

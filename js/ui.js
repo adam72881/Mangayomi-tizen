@@ -609,6 +609,7 @@
       '<div id="player-shade" class="player-shade is-shown">' +
       '<div class="player-top"><div class="player-name">' + esc(frame.title) + '</div><div class="player-ep">' + esc(frame.episodeName) + "</div></div>" +
       '<div id="player-center" class="player-center" hidden>' + ICON.play + "</div>" +
+      '<div id="player-wait" class="player-wait" role="status" aria-label="Caricamento"></div>' +
       '<p id="player-error" class="player-error" hidden></p>' +
       '<div class="player-bottom">' +
       '<div class="seek-row"><span id="player-cur" class="player-t">0:00</span><div class="track"><div id="player-bar" class="track-fill"></div><div id="player-knob" class="track-knob"></div></div><span id="player-dur" class="player-t">0:00</span></div>' +

@@ -61,6 +61,8 @@
   let ctl = -1;
   let subIndex = -1;
   let hideTimer = 0;
+  let played = false;
+  let ignoreKeysUntil = 0;
   const HIDE_MS = 3000; // overlay hides after 3 s without keys while playing
   const SKIP_INTRO_MS = 85000; // Mangayomi default skip duration
   const PLAY_SVG = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
@@ -110,6 +112,7 @@
     ctl = -1;
     subIndex = -1;
     lockedHeight = 0;
+    played = false;
     clearTimeout(hideTimer);
     if (hls) { try { hls.destroy(); } catch (e) {} hls = null; }
     if (usingAv && window.webapis && window.webapis.avplay) {
@@ -387,7 +390,18 @@
     return "Se il file richiede Cookie, Referer o User-Agent, questa TV non può inviarli. L'app non aggira questo limite.";
   }
 
+  function setWaiting(on) {
+    const el = document.getElementById("player-wait");
+    if (el) el.hidden = !on;
+  }
+  function clearError() {
+    const el = document.getElementById("player-error");
+    if (!el) return;
+    el.hidden = true;
+    el.textContent = "";
+  }
   function showError(msg) {
+    setWaiting(false);
     const el = document.getElementById("player-error");
     if (el) { el.hidden = false; el.textContent = msg; }
   }
@@ -399,6 +413,8 @@
     return frame && Mly.ui && Mly.ui.nextIndex ? Mly.ui.nextIndex(frame.episodes, frame.episodeIndex) : -1;
   }
   function onEnded() {
+    // An empty video element fires "ended" while the real file is still loading.
+    if (!played) return;
     remember(true);
     if (nextOf() >= 0) nextEpisode(true);
   }
@@ -420,12 +436,21 @@
       paintChrome();
     });
     video.addEventListener("ended", onEnded);
-    video.addEventListener("play", () => { paintChrome(); show(); });
+    video.addEventListener("playing", () => { played = true; setWaiting(false); clearError(); paintChrome(); show(); });
+    video.addEventListener("waiting", () => { if (!played) setWaiting(true); });
     video.addEventListener("pause", paintChrome);
-    video.addEventListener("error", () => showError("Il video non è partito. " + headerNote()));
+    video.addEventListener("error", () => {
+      if (!video || !video.getAttribute("src")) return;
+      showError("Il video non è partito. " + headerNote());
+    });
     const start = frame.startAt || 0;
     frame.startAt = 0;
     frame.resumeFrom = start > 3000 ? start : 0;
+    clearError();
+    setWaiting(true);
+    // The key that opened the player (OK, or Giù on some remotes) must not
+    // also hit "episodio successivo" once this screen exists.
+    ignoreKeysUntil = Date.now() + 450;
     playUrl(chosen.url, start);
     loadSubtitles();
     show();
@@ -532,6 +557,7 @@
   // leave it. Media keys work everywhere.
   function handleKey(e) {
     if (!frame) return false;
+    if (Date.now() < ignoreKeysUntil) return true;
     const key = e.key;
     const code = e.keyCode;
     show();

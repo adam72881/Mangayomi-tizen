@@ -74,6 +74,8 @@ await waitFor("document.querySelectorAll('[data-mount=episodes] .vrow').length>0
 await click('[data-act=detail-play]');
 const started = await waitFor("(()=>{const v=document.getElementById('player-video'); return v && v.readyState>=2 && v.currentTime>0.5})()", 60000);
 ok("il video parte da solo", !!started);
+ok("niente scritta sull'episodio successivo all'apertura", await ev("(()=>{const e=document.getElementById('player-error'); return !e || e.hidden || !/episodio successivo/i.test(e.textContent)})()"));
+ok("la rotella di caricamento sparisce quando il video è partito", await ev("(()=>{const w=document.getElementById('player-wait'); const rule=[...document.styleSheets].some(s=>{try{return [...s.cssRules].some(r=>r.name==='player-spin'||(r.selectorText||'')==='.player-wait')}catch(e){return false}}); return !!w && w.hidden && w.classList.contains('player-wait') && rule})()"));
 const ui = await ev("(()=>{const q=document.getElementById('player-qualities'); const sh=document.getElementById('player-shade'); return {listaQualita: getComputedStyle(q).display, testo: sh.innerText.replace(/\\n+/g,' | '), titolo: document.querySelector('.player-name').textContent, ep: document.querySelector('.player-ep').textContent, tempi:[document.getElementById('player-cur').textContent, document.getElementById('player-dur').textContent], pulsanti:[...document.querySelectorAll('#player-ctl [data-pc]')].map(b=>b.dataset.pc+(b.disabled?'(off)':''))}})()");
 ok("nessuna lista qualità all'avvio", ui.listaQualita === "none", ui.listaQualita);
 ok("nessuna etichetta 'AnimeWorld' nel lettore", !/AnimeWorld/.test(ui.testo), ui.testo);
