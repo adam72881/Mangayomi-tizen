@@ -45,8 +45,9 @@
     let cur = state.focused && items.includes(state.focused) ? state.focused : items[0];
     if (!cur) return;
     if (cur._grid && cur._grid.move(dir)) return;
-    if (dir === "up" && cur.dataset.up) {
-      const target = document.querySelector('[data-fid="' + cur.dataset.up + '"]');
+    const link = dir === "up" ? cur.dataset.up : dir === "down" ? cur.dataset.down : "";
+    if (link) {
+      const target = document.querySelector('[data-fid="' + link + '"]');
       if (target && items.includes(target)) { focus(target); return; }
     }
     if (rowMove(cur, dir, items)) return;

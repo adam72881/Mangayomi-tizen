@@ -12,7 +12,7 @@ ${CHROME:-google-chrome} --headless=new --autoplay-policy=no-user-gesture-requir
   http://127.0.0.1:8770/index.html > /dev/null 2>&1 & CHR=$!
 sleep 4
 # L'ordine conta: v032test parte da un'app appena aperta e installa AnimeWorld; gli altri la usano.
-for t in v032test uninstalltest playertest; do
+for t in v032test uninstalltest playertest navtest; do
   echo "=== $t"; timeout 300 node tools/$t.mjs $PORT | tee /tmp/mly-$t.out | grep -E "^(PASS|FAIL)" | cut -c1-200
 done
 echo "Totale: $(cat /tmp/mly-*test.out | grep -c '^PASS') PASS, $(cat /tmp/mly-*test.out | grep -c '^FAIL') FAIL"

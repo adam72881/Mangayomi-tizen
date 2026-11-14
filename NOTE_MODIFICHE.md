@@ -61,3 +61,15 @@
   - I sottotitoli forniti dall'estensione (file WebVTT) si attivano a giro dal pulsante Sottotitoli.
 - HypnoTube: "Popolari" e "Ultimi" uguali. Non è colpa dell'app, che chiama getPopular e getLatestUpdates separatamente. L'estensione 1.4.2, con "Popular a sorpresa" attivo (lo è di default), può pescare proprio l'ordine "Recenti", oppure "Casuale" a partire dalla pagina 1 dei recenti. La correzione è nella patch separata per il repository delle estensioni (HypnoTube 1.4.3), non ancora unita.
 
+
+# v0.3.6 (14/11/2026), correzioni dopo la prova sulla TV della 0.3.5, non ancora installata
+
+Le correzioni principali sono nei commit 990aa14, 9db8e78 e 1ff1ddc di questo ramo (griglia, lettore, focus). Questo commit aggiunge:
+
+- **#5** In js/nav.js `data-down` funziona come `data-up`. Le schede Popolari/Ultimi hanno `data-down="grid-source"`, quindi Giù dalla scheda torna sulle copertine: prima andava su «Carica altro», che era più vicino in linea retta.
+- **#6** Il pulsante Filtri ha `data-fid="src-filter"`. Così, se la schermata viene ridisegnata mentre il pannello è aperto, alla chiusura il focus torna comunque su Filtri. Le schede di Sfoglia hanno `data-fid="browse-<scheda>"`.
+- **Test headless:**
+  - Nuovo `tools/navtest.mjs`, aggiunto a `tools/run-tests.sh`. Controlla la griglia compatta (7–10 copertine per riga, spazio piccolo); che la seconda sorgente abbia la stessa cella della prima (#4); Su verso la scheda e Giù di nuovo sulla griglia (#5); il focus dopo i Filtri e dopo un messaggio (#6); Su dalla prima riga delle Estensioni e il ritorno sulla riga della sorgente (#7).
+  - In `playertest.mjs`, prima di controllare l'icona di pausa, si aspetta che il video abbia un fotogramma. Dopo il salto di 85 s, con una rete lenta, il test falliva a caso.
+  - Risultato con Chromium headless: 120 PASS, 0 FAIL.
+- Versione 0.3.6 in config.xml e in Informazioni.

@@ -98,6 +98,8 @@ ok("OK su Salta intro: avanti 85 s", t1 - t0 > 80 && t1 - t0 < 95, { prima: t0, 
 for (let i = 0; i < 8 && (await st()).focused !== "play"; i++) { await key(37); await sleep(80); }
 ok("Sinistra arriva su Play/Pausa", (await st()).focused === "play", await st());
 await key(13); await sleep(400);
+// Dopo il salto di 85 s il video può essere ancora in caricamento: l'icona compare quando c'è un fotogramma.
+await waitFor("document.getElementById('player-video').readyState>=2", 15000); await sleep(200);
 ok("OK su Pausa mette in pausa e mostra l'icona al centro", await ev("document.getElementById('player-video').paused && !document.getElementById('player-center').hidden && document.querySelector('[data-pc=play]').dataset.state==='play'"));
 await key(13); await sleep(600);
 ok("OK di nuovo riprende", await ev("!document.getElementById('player-video').paused"));

@@ -431,7 +431,7 @@
   function renderBrowse() {
     const tabs = ["sources", "extensions", "migrate"].map((id) => {
       const label = id === "sources" ? "Sorgenti" : id === "extensions" ? "Estensioni" : "Migra";
-      return '<button type="button" class="pill' + (root.browse === id ? " is-on" : "") + '" data-focus data-act="browse" data-tab="' + id + '"' + (root.browse === id ? " data-autofocus" : "") + ">" + label + "</button>";
+      return '<button type="button" class="pill' + (root.browse === id ? " is-on" : "") + '" data-focus data-fid="browse-' + id + '" data-act="browse" data-tab="' + id + '"' + (root.browse === id ? " data-autofocus" : "") + ">" + label + "</button>";
     }).join("");
     let body = '<div class="pills pills-center">' + tabs + "</div>";
     if (root.browse === "sources") body += renderSources();
@@ -519,7 +519,7 @@
   }
 
   function renderAbout() {
-    return screen("about", "Informazioni", '<div class="prose"><p>Mangayomi per TV Samsung. Libreria anime, estensioni e lettore, con la stessa API delle estensioni di Mangayomi.</p><p>Versione 0.3.5</p><p>Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell\'età non vengono aggirati.</p><p>La riproduzione parte alla qualità più alta. Per HLS si usa la variante più alta, non Auto.</p><p>Le estensioni arrivano dal repository indicato in Altro › Sfoglia.</p></div>', "");
+    return screen("about", "Informazioni", '<div class="prose"><p>Mangayomi per TV Samsung. Libreria anime, estensioni e lettore, con la stessa API delle estensioni di Mangayomi.</p><p>Versione 0.3.6</p><p>Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell\'età non vengono aggirati.</p><p>La riproduzione parte alla qualità più alta. Per HLS si usa la variante più alta, non Auto.</p><p>Le estensioni arrivano dal repository indicato in Altro › Sfoglia.</p></div>', "");
   }
 
   function renderPlayerSettings() {
@@ -543,10 +543,10 @@
 
   function renderSource(frame) {
     const src = sourceOf(frame.sourceId) || { name: "Sorgente" };
-    const tabs = '<div class="pills"><button type="button" class="pill' + (frame.tab === "popular" ? " is-on" : "") + '" data-focus data-fid="src-tab-popular"' + (frame.tab === "popular" ? " data-autofocus" : "") + ' data-act="src-tab" data-tab="popular">Popolari</button>' +
-      (frame.supportsLatest !== false ? '<button type="button" class="pill' + (frame.tab === "latest" ? " is-on" : "") + '" data-focus data-fid="src-tab-latest"' + (frame.tab === "latest" ? " data-autofocus" : "") + ' data-act="src-tab" data-tab="latest">Ultimi</button>' : "") +
+    const tabs = '<div class="pills"><button type="button" class="pill' + (frame.tab === "popular" ? " is-on" : "") + '" data-focus data-fid="src-tab-popular" data-down="grid-source"' + (frame.tab === "popular" ? " data-autofocus" : "") + ' data-act="src-tab" data-tab="popular">Popolari</button>' +
+      (frame.supportsLatest !== false ? '<button type="button" class="pill' + (frame.tab === "latest" ? " is-on" : "") + '" data-focus data-fid="src-tab-latest" data-down="grid-source"' + (frame.tab === "latest" ? " data-autofocus" : "") + ' data-act="src-tab" data-tab="latest">Ultimi</button>' : "") +
       "</div>";
-    const tools = '<div class="top-actions"><button type="button" class="text-btn" data-focus data-fid="src-search" data-act="src-search">Cerca</button><button type="button" class="text-btn" data-focus data-act="src-filter">Filtri</button><button type="button" class="text-btn" data-focus data-act="open-prefs" data-id="' + esc(frame.sourceId) + '">Impostazioni</button><button type="button" class="text-btn" data-focus data-act="no-webview">Web</button></div>';
+    const tools = '<div class="top-actions"><button type="button" class="text-btn" data-focus data-fid="src-search" data-act="src-search">Cerca</button><button type="button" class="text-btn" data-focus data-fid="src-filter" data-act="src-filter">Filtri</button><button type="button" class="text-btn" data-focus data-act="open-prefs" data-id="' + esc(frame.sourceId) + '">Impostazioni</button><button type="button" class="text-btn" data-focus data-act="no-webview">Web</button></div>';
     let body = tabs;
     if (frame.tab === "search") body += '<p class="query-line">Ricerca: ' + esc(frame.query || "(filtri)") + "</p>";
     if (frame.loading) body += '<div class="empty"><h2>Caricamento…</h2></div>';
