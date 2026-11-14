@@ -148,3 +148,32 @@ hr { border: 0; border-top: 1px solid #49454f; }
 .primary.danger { background: #8c1d18; color: #ffdad6; }
 .row-btn { min-width: 150px; text-align: center; }
 .row-btn.is-install { color: #d0bcff; }
+
+/* v0.3.7: interfaccia più grande per la TV vista dal divano (75", 1920x1080).
+   Barra laterale, titoli, righe, pulsanti e messaggi erano dimensionati come
+   su un monitor: restava molto spazio vuoto e il testo era piccolo. */
+html, body { font-size: 22px; }
+#rail { width: 170px; padding: 22px 10px; }
+.brand { width: 60px; height: 60px; margin-bottom: 18px; border-radius: 16px; }
+.rail-list { gap: 10px; }
+.rail-btn { gap: 6px; padding: 12px 4px; }
+.rail-btn span { font-size: 18px; }
+.rail-icon { width: 72px; height: 46px; border-radius: 23px; }
+.rail-icon svg { width: 32px; height: 32px; }
+.badge { top: 6px; right: 22px; font-size: 15px; padding: 1px 7px; border-radius: 10px; }
+.screen { padding: 36px 56px 28px; }
+.top { margin-bottom: 18px; }
+.top h1 { font-size: 46px; }
+.top-actions, .button-row, .footer-row { gap: 14px; }
+.text-btn, .primary { padding: 14px 24px; font-size: 22px; border-radius: 16px; }
+.pills { gap: 12px; margin-bottom: 18px; }
+.pill { padding: 10px 22px; font-size: 22px; }
+.rows { gap: 12px; }
+.row-main { padding: 22px 26px; border-radius: 18px; }
+.row-title { font-size: 28px; }
+.row-meta { font-size: 20px; }
+.empty h2 { font-size: 44px; margin: 14px 0; }
+.empty p { font-size: 24px; }
+.empty .primary { margin-top: 10px; padding: 16px 34px; font-size: 24px; }
+.empty-mark svg { width: 72px; height: 72px; fill: #d0bcff; }
+.query-line { font-size: 22px; }

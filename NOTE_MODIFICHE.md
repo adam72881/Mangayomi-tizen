@@ -144,3 +144,11 @@ Preparazione per proporre l'app al progetto Mangayomi.
   - episodi molto più grandi: righe da 128 px con miniatura 192×108 e testo più grande (`rowH` per griglia in `js/grid.js`);
   - tre test nuovi in `navtest.mjs`. Totale: 138 PASS, 0 FAIL.
 - **Elenco degli episodi dall'alto** (segnalato da Adam): come in Mangayomi, l'elenco parte dal primo in alto, cioè l'ultimo uscito. Prima si apriva già spostato sull'episodio suggerito (es. il 10) e quelli più recenti restavano nascosti sopra. L'episodio da guardare resta sul pulsante «Inizia/Riprendi/Continua». In `js/grid.js` ci sono `length` e `jump(i)` per spostarsi su un elemento (usati dai test per scendere all'Ep. 1). Totale: 139 PASS, 0 FAIL.
+- **Interfaccia più grande per la TV** (segnalato da Adam: «c'è tanto spazio libero»):
+  - barra laterale più larga (170 px) con icone e scritte più grandi;
+  - titoli delle schermate a 46 px;
+  - righe di Altro, Sfoglia e impostazioni più alte, con testo a 28 px;
+  - pulsanti, schede e messaggi «vuoto» più grandi;
+  - testo di base a 22 px.
+
+  Sono solo regole CSS in fondo a `css/app.css`. Totale test: 139 PASS, 0 FAIL.
