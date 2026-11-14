@@ -61,7 +61,8 @@
     let cellW = POSTER_W;
     let posterH = POSTER_H;
     const GAP = variant === "rows" ? ROW_GAP : POSTER_GAP;
-    function cellH() { return variant === "rows" ? ROW_H : posterH; }
+    const rowH = opts.rowH || ROW_H;
+    function cellH() { return variant === "rows" ? rowH : posterH; }
     function stride() { return cellH() + GAP; }
 
     function measure() {

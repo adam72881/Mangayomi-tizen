@@ -137,3 +137,9 @@ Preparazione per proporre l'app al progetto Mangayomi.
   - Riaprendo Filtri si ritrovano le scelte già applicate, non quelle predefinite. «Azzera» le riporta come all'inizio.
   - Due test nuovi in `navtest.mjs`. Totale: 134 PASS, 0 FAIL.
 - **Riga «Ricerca»:** invece di «(filtri)» mostra cosa è cambiato rispetto ai filtri predefiniti della sorgente, per esempio «Ricerca: Ordine: Ultime aggiunte · Genere: Azione». Se c'è anche un testo cercato compare tra «». Senza testo né filtri cambiati dice «tutti i risultati». Tradotta anche in inglese. Totale test: 135 PASS, 0 FAIL.
+- **Scheda del titolo in stile Mangayomi** (chiesta da Adam):
+  - copertina più grande (220×320), titolo, dettagli e **tag che si possono premere**: cercano quel genere nella sorgente;
+  - un pulsante grande «Inizia/Riprendi» e sotto una fila di azioni con icona, solo quelle che funzionano: Aggiungi alla libreria / In libreria e Web, più Categorie e Migra solo se il titolo è in libreria;
+  - tolti Tracciamento, Consigliati e Ordine di visione: sulla TV mostravano solo «non disponibile»;
+  - episodi molto più grandi: righe da 128 px con miniatura 192×108 e testo più grande (`rowH` per griglia in `js/grid.js`);
+  - tre test nuovi in `navtest.mjs`. Totale: 138 PASS, 0 FAIL.

@@ -57,7 +57,7 @@
     "Samsung AVPlay non riesce ad aprire questo flusso e per questo indirizzo non c'è alternativa.": "Samsung AVPlay can't open this stream and there is no alternative for this URL.",
     "Nessun repository. Aggiungine uno per vedere le estensioni.": "No repositories. Add one to see extensions.",
     "Indirizzo di un anime_index.json (repository di estensioni Mangayomi).": "URL of an anime_index.json (Mangayomi extension repository).",
-    "Italiano": "Italiano", "English": "English",
+    "Italiano": "Italiano", "English": "English", "Episodi": "Episodes", "Aggiungi alla libreria ": "Add to library",
     "Accessi dei siti (sperimentale)": "Site logins (experimental)",
     "Lingua della TV (automatica)": "TV language (automatic)", "Si applica subito; l'app si ricarica.": "Applied right away; the app reloads.",
   };
@@ -75,6 +75,7 @@
     [/^Questa TV non ha WebView\. Apri la pagina da telefono o computer(.*)$/, "This TV has no WebView. Open the page from a phone or computer$1"],
     [/^Download non riuscito: (.+)$/, "Download failed: $1"],
     [/^Ricerca: tutti i risultati$/, "Search: all results"],
+    [/^Episodi · (\d+) visti$/, "Episodes · $1 watched"],
     [/^Ricerca: (.+)$/, "Search: $1"],
     [/^(Attivo|Disattivo) · La TV ricorda i cookie dei siti.*$/, (m, a) => (a === "Attivo" ? "On" : "Off") + " · The TV keeps site cookies, so logins made in an extension's settings (e.g. PMVHaven, HypnoTube) can stay valid. No check is bypassed."],
     [/^Impossibile caricare la pagina \((.+)$/, "Couldn't load the page ($1"],

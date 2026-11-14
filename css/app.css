@@ -63,16 +63,30 @@ img { display: block; }
 .empty { margin: auto; text-align: center; max-width: 720px; }
 .empty h2 { margin: 8px 0; font-size: 32px; }
 .empty-mark { color: #d0bcff; display: flex; justify-content: center; }
-.detail-screen { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; padding-top: 36px; }
+.detail-screen { display: grid; grid-template-columns: 46fr 54fr; gap: 36px; padding-top: 32px; }
 .detail-left, .detail-right { min-height: 0; min-width: 0; display: flex; flex-direction: column; }
-.detail-hero { display: flex; gap: 18px; align-items: center; }
-.detail-cover { width: 150px; height: 220px; object-fit: cover; border-radius: 12px; background: #2b2930; }
-.genres { display: flex; flex-wrap: wrap; gap: 8px; margin-top: 10px; }
-.genres span { background: #2b2930; color: #d0bcff; border-radius: 999px; padding: 4px 10px; font-size: 15px; }
-.desc { color: #e6e0e9; line-height: 1.4; max-height: 4.2em; overflow: hidden; }
-.actions { display: flex; flex-direction: column; gap: 6px; overflow: hidden; }
-.action { padding: 12px 14px; background: #211f26; font-size: 20px; }
-.eps-head { margin-bottom: 8px; color: #cac4d0; }
+.detail-left { gap: 18px; }
+.detail-hero { display: flex; gap: 24px; align-items: flex-start; }
+.detail-cover { flex: none; width: 220px; height: 320px; object-fit: cover; border-radius: 14px; background: #2b2930; box-shadow: 0 6px 24px rgba(0,0,0,0.45); }
+.detail-info { min-width: 0; display: flex; flex-direction: column; gap: 10px; padding-top: 6px; }
+.detail-info h1 { font-size: 38px; line-height: 1.15; max-height: 3.45em; overflow: hidden; }
+.detail-info .meta { margin: 0; font-size: 20px; }
+.genres { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 4px; }
+.genres span, .tag { background: #2b2930; color: #d0bcff; border: 3px solid transparent; border-radius: 999px; padding: 6px 16px; font-size: 18px; }
+.tag.is-focused { border-color: #d0bcff; background: #4a4458; color: #fff; }
+.primary-action { display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; padding: 16px 20px; border-radius: 999px; background: #d0bcff; color: #381e72; font-size: 24px; font-weight: 700; border: 4px solid transparent; }
+.primary-action svg { width: 30px; height: 30px; fill: currentColor; }
+.primary-action.is-focused { border-color: #fff; transform: scale(1.02); }
+.dactions { display: flex; gap: 12px; }
+.dact { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px; border-radius: 16px; background: #211f26; color: #e6e0e9; border: 3px solid transparent; font-size: 18px; }
+.dact-icon svg { width: 30px; height: 30px; fill: #d0bcff; }
+.dact.is-focused { border-color: #d0bcff; background: #4a4458; }
+.desc { color: #e6e0e9; font-size: 20px; line-height: 1.45; max-height: 7.25em; overflow: hidden; margin: 0; }
+[data-mount="episodes"] .vrow { height: 128px; gap: 18px; }
+[data-mount="episodes"] .vrow-thumb img { width: 192px; height: 108px; }
+[data-mount="episodes"] .vrow-title { font-size: 22px; max-height: 2.6em; }
+[data-mount="episodes"] .vrow-meta { font-size: 17px; }
+.eps-head { margin-bottom: 10px; color: #cac4d0; font-size: 22px; font-weight: 600; }
 .prose { max-width: 900px; line-height: 1.45; }
 .mono { font-family: ui-monospace, monospace; word-break: break-all; }
 #dialog, #osk, #filters { position: absolute; inset: 0; background: rgba(20, 18, 24, 0.92); display: flex; align-items: center; justify-content: center; }

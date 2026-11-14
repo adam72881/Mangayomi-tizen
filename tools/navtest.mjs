@@ -66,6 +66,21 @@ await waitFor("document.querySelectorAll('#stage [data-eid]').length>0", 30000);
 await ev("(()=>{const r=document.querySelector('#stage [data-rownav] .row'); Mly.nav.focus(r.querySelector('.row-main')); return 1})()"); await key(39); await sleep(150);
 await key(38); await sleep(150);
 ok("#7 Su dalla prima riga delle Estensioni (pulsante a destra) va su «Estensioni», non su «Migra»", /^browse-extensions\|Estensioni/.test(await ev(cur)), await ev(cur));
+// Scheda del titolo stile Mangayomi: azioni che funzionano, tag da premere, episodi grandi
+await ev("Mly.ui.selectTab('browse', true); 1"); await sleep(300);
+await click('[data-act="browse"][data-tab="sources"]'); await sleep(300);
+await click(`[data-act="open-source"][data-id="${awId}"]`);
+await waitFor("document.querySelectorAll('#grid-source .vcell:not([hidden])').length>0", 45000); await sleep(1200);
+await ev("document.querySelector('#grid-source .vcell').click(); 1");
+await waitFor("document.querySelectorAll('[data-mount=episodes] .vrow').length>0", 45000); await sleep(800);
+const det = await ev("JSON.stringify({az:[...document.querySelectorAll('.dact')].map(b=>b.dataset.act), tag:document.querySelectorAll('.tag[data-act=detail-tag]').length, h:Math.round(document.querySelector('[data-mount=episodes] .vrow').getBoundingClientRect().height), play:(Mly.nav.current()||{}).dataset.fid})");
+const d = JSON.parse(det);
+ok("scheda: solo azioni che funzionano (niente Tracciamento/Consigliati/Ordine), Inizia col focus", !d.az.some(a=>/track|rec|order/.test(a)) && d.az.includes("toggle-lib") && d.az.includes("no-webview") && d.play === "detail-play", d);
+ok("scheda: episodi grandi (128 px) e tag da premere", d.h === 128 && d.tag > 0, d);
+const tagName = await ev("(()=>{const t=document.querySelector('.tag'); Mly.nav.focus(t); return t.dataset.tag})()"); await key(13);
+await waitFor("document.querySelector('.query-line') && !document.querySelector('.screen [data-mount=episodes]')", 30000); await sleep(800);
+ok("scheda: premendo un tag si cerca quel genere nella sorgente", (await ev("(document.querySelector('.query-line')||{}).textContent") || "").includes(tagName), await ev("(document.querySelector('.query-line')||{}).textContent"));
+await key(10009); await sleep(500); await key(10009); await sleep(500); await key(10009); await sleep(500);
 // v0.3.7: più repository, lingua, pulsante Web
 await ev("Mly.ui.selectTab('more', true); 1"); await sleep(300);
 await click('[data-act="push"][data-screen="browse-settings"]'); await sleep(300);

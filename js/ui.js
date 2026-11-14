@@ -260,6 +260,7 @@
         const built = episodeCards(frame);
         Mly.grid.mount(host, {
           variant: "rows",
+          rowH: 128,
           items: built,
           focusIndex: frame.epFocus != null ? frame.epFocus : resumeChoice(frame.sourceId, frame.link, chaptersOf(frame.manga || {})).idx,
           onIndex: (i) => { frame.epFocus = i; },
@@ -583,6 +584,14 @@
     return '<section class="screen" data-screen="source"><header class="top"><h1>' + esc(src.name) + "</h1>" + tools + "</header>" + body + "</section>";
   }
 
+  const DICON = {
+    play: '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
+    heart: '<svg viewBox="0 0 24 24"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55l-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/></svg>',
+    heartOn: '<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>',
+    label: '<svg viewBox="0 0 24 24"><path d="M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16z"/></svg>',
+    web: '<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm6.93 6h-2.95a15.65 15.65 0 0 0-1.38-3.56A8.03 8.03 0 0 1 18.93 8zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2s.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56A7.99 7.99 0 0 1 5.08 16zm2.95-8H5.08a7.99 7.99 0 0 1 4.33-3.56A15.65 15.65 0 0 0 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2s.07-1.35.16-2h4.68c.09.65.16 1.32.16 2s-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 0 1-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2s-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z"/></svg>',
+    migrate: '<svg viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg>',
+  };
   function renderDetail(frame) {
     const src = sourceOf(frame.sourceId) || {};
     const manga = frame.manga || frame.preview || {};
@@ -594,20 +603,23 @@
     const inLib = !!findLibrary(frame.sourceId, frame.link);
     const genres = (manga.genre || []).filter(Boolean).slice(0, 8);
     const meta = [statusName(manga.status), chapters.length ? chapters.length + " episodi" : "", src.name || "", manga.author || ""].filter(Boolean).join("   ·   ");
+    // Come in Mangayomi: un pulsante grande per guardare e sotto una fila di azioni
+    // con icona. Solo quelle che sulla TV funzionano davvero: Tracciamento,
+    // Consigliati e Ordine di visione richiedono un login da browser e sono tolti.
+    const act = (id, label, icon, fid) => '<button type="button" class="dact" data-focus data-fid="' + fid + '" data-act="' + id + '"><span class="dact-icon">' + icon + '</span><span class="dact-label">' + esc(label) + "</span></button>";
     const actions = [
-      ['<button type="button" class="action primary-action" data-focus data-autofocus data-fid="detail-play" data-act="detail-play">' + esc(choice.label) + "</button>", true],
-      ['<button type="button" class="action" data-focus data-act="toggle-lib">' + (inLib ? "In libreria" : "Aggiungi alla libreria") + "</button>", true],
-      ['<button type="button" class="action" data-focus data-act="detail-cats">Categorie</button>', true],
-      ['<button type="button" class="action" data-focus data-act="detail-track">Tracciamento</button>', true],
-      ['<button type="button" class="action" data-focus data-act="no-webview">Apri nel browser</button>', true],
-      ['<button type="button" class="action" data-focus data-act="detail-rec">Consigliati</button>', true],
-      ['<button type="button" class="action" data-focus data-act="detail-order">Ordine di visione</button>', true],
-      ['<button type="button" class="action" data-focus data-act="detail-migrate">Migra</button>', true],
-    ];
+      act("toggle-lib", inLib ? "In libreria" : "Aggiungi alla libreria", inLib ? DICON.heartOn : DICON.heart, "detail-lib"),
+      inLib ? act("detail-cats", "Categorie", DICON.label, "detail-cats") : "",
+      act("no-webview", "Web", DICON.web, "detail-web"),
+      inLib ? act("detail-migrate", "Migra", DICON.migrate, "detail-migrate") : "",
+    ].join("");
     const cover = Mly.grid.thumb(image);
-    const left = '<div class="detail-hero">' + (cover ? '<img class="detail-cover" alt="" width="150" height="220" src="' + esc(cover) + '">' : '<div class="detail-cover"></div>') + '<div><h1>' + esc(name) + "</h1><p class=\"meta\">" + esc(meta) + "</p>" +
-      (genres.length ? '<div class="genres">' + genres.map((g) => "<span>" + esc(g) + "</span>").join("") + "</div>" : "") +
-      "</div></div><p class=\"desc\">" + esc(manga.description || "") + "</p><div class=\"actions\">" + actions.map((a) => a[0]).join("") + "</div>";
+    // I tag si possono premere: cercano quel genere nella sorgente, come in Mangayomi.
+    const tags = genres.length ? '<div class="genres">' + genres.map((g) => '<button type="button" class="tag" data-focus data-act="detail-tag" data-tag="' + esc(g) + '">' + esc(g) + "</button>").join("") + "</div>" : "";
+    const left = '<div class="detail-hero">' + (cover ? '<img class="detail-cover" alt="" width="220" height="320" src="' + esc(cover) + '">' : '<div class="detail-cover"></div>') + '<div class="detail-info"><h1>' + esc(name) + "</h1><p class=\"meta\">" + esc(meta) + "</p>" + tags + "</div></div>" +
+      '<button type="button" class="primary-action" data-focus data-autofocus data-fid="detail-play" data-act="detail-play">' + DICON.play + "<span>" + esc(choice.label) + "</span></button>" +
+      '<div class="dactions">' + actions + "</div>" +
+      "<p class=\"desc\">" + esc(manga.description || "") + "</p>";
     let right;
     if (frame.loading && !chapters.length) right = '<div class="empty"><h2>Caricamento…</h2></div>';
     else if (frame.error && !chapters.length) right = '<div class="empty"><p>' + esc(frame.error) + '</p><button type="button" class="text-btn" data-focus data-act="detail-refresh">Riprova</button></div>';
@@ -865,6 +877,19 @@
       root.extError = e.message || String(e);
     }
     if (!top() && root.tab === "browse" && root.browse === "extensions") render();
+  }
+
+  // Ricerca nella sorgente partendo da un tag del titolo (il genere come testo).
+  function openSourceSearch(id, text) {
+    const frame = {
+      name: "source", sourceId: String(id), tab: "search", items: [], page: 1, hasNext: false,
+      loading: true, error: "", query: text, filters: null, filterDraft: null, showFilters: false,
+      focusIndex: 0, supportsLatest: true,
+    };
+    try { frame.supportsLatest = Mly.ext.supportsLatest(id); } catch (e) { frame.supportsLatest = true; }
+    stack.push(frame);
+    render();
+    loadSource(frame, false);
   }
 
   function openSource(id) {
@@ -1437,6 +1462,7 @@
     if (act === "toggle-lib") { toggleLibrary(frame); return; }
     if (act === "detail-refresh") { frame.loading = true; render(); refreshDetail(frame); return; }
     if (act === "detail-cats") { openCategoryAssign(frame); return; }
+    if (act === "detail-tag") { openSourceSearch(frame.sourceId, el.dataset.tag || ""); return; }
     if (act === "detail-track") { openDialog("Tracciamento", "Il tracciamento richiede un account collegato da browser. Questa app per TV non ha WebView, quindi i tracker non si possono collegare qui."); return; }
     if (act === "detail-rec" || act === "detail-order") { openDialog("Non disponibile sulla TV", "Consigliati e ordine di visione usano tracker online che richiedono un accesso da browser, che questa app per TV non può aprire."); return; }
     if (act === "detail-migrate") {
