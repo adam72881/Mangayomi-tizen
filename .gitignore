@@ -7,3 +7,5 @@ profiles.xml
 *.key
 .env
 node_modules/
+tv-remote-token.txt
+*token*.txt

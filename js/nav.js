@@ -66,6 +66,12 @@
       const score = Math.max(0, primary) + ortho * 1.4;
       if (score < bestScore) { bestScore = score; best = el; }
     }
+    if (best && dir === "left" && best.dataset.zone === "rail" && cur.dataset.zone !== "rail") {
+      // Entering the rail lands on the selected tab, as in Mangayomi, instead of switching tab.
+      best = document.querySelector(".rail-btn.is-selected") || best;
+      focus(best);
+      return;
+    }
     if (best) {
       focus(best);
       if (best.dataset.zone === "rail" && best.dataset.tab && Mly.ui) Mly.ui.selectTab(best.dataset.tab, true);

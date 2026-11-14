@@ -35,3 +35,8 @@
 
 - config.xml: aggiunto il privilegio `http://tizen.org/privilege/tv.inputdevice`. Senza, sulla TV `tizen.tvinputdevice` rispondeva "Permission denied" e i tasti numerici del telecomando non venivano registrati.
 - js/grid.js: le copertine "custom_<id>.jpeg" di PMVHaven, a piena risoluzione (1920x1080 o 3830x2160, fino a 1,4 MB), vengono sostituite con "webp320_<id>.webp" (480x270) dello stesso video. Se mancano, si torna all'originale. Sulla TV causavano blocchi fino a 4 s nella griglia.
+
+# v0.3.4 (14/11/2026), correzioni dopo la prova con i tasti veri del telecomando di rete
+
+- js/nav.js: "Sinistra" dal contenuto verso la barra laterale ora va sulla scheda già selezionata, come in Mangayomi. Prima andava sul pulsante della barra allineato in altezza e cambiava scheda senza volerlo (dal centro della Libreria si finiva su Cronologia).
+- js/ui.js: dopo l'attivazione o disattivazione della modalità nascosta (0×5) il focus resta sulla barra laterale, se era lì. Prima saltava nel contenuto.

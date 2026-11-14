@@ -167,6 +167,8 @@
       root.migrate = { step: 0, entryId: "", sourceId: "", results: [], loading: false, error: "", focus: 0 };
     }
     toast("OK");
+    const was = Mly.nav.current();
+    if (!keepFocus && was && was.dataset.zone === "rail" && !top()) keepFocus = was;
     render();
     updateRail();
     if (keepFocus && document.contains(keepFocus)) Mly.nav.focus(keepFocus);
@@ -498,7 +500,7 @@
   }
 
   function renderAbout() {
-    return screen("about", "Informazioni", '<div class="prose"><p>Mangayomi per TV Samsung. Libreria anime, estensioni e lettore, con la stessa API delle estensioni di Mangayomi.</p><p>Versione 0.3.3</p><p>Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell\'età non vengono aggirati.</p><p>La riproduzione parte alla qualità più alta. Per HLS si usa la variante più alta, non Auto.</p><p>Le estensioni arrivano dal repository indicato in Altro › Sfoglia.</p></div>', "");
+    return screen("about", "Informazioni", '<div class="prose"><p>Mangayomi per TV Samsung. Libreria anime, estensioni e lettore, con la stessa API delle estensioni di Mangayomi.</p><p>Versione 0.3.4</p><p>Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell\'età non vengono aggirati.</p><p>La riproduzione parte alla qualità più alta. Per HLS si usa la variante più alta, non Auto.</p><p>Le estensioni arrivano dal repository indicato in Altro › Sfoglia.</p></div>', "");
   }
 
   function renderPlayerSettings() {

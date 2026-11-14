@@ -131,3 +131,18 @@ Limiti TV: niente WebView/login (evaluateJavascriptViaWebview), Cookie/Set-Cooki
   - JAV Guru 1.0.0: Popolari 30, Ultimi 20, ricerca 21, video 1920x1080.
 - Fluidità nella griglia PMV, frame medio 17,4 ms e massimo 150-167 ms (0.3.1: 17,6-19,4 ms e 266-883 ms).
 - All'uscita la cronologia e i progressi sono vuoti; estensioni installate: AnimeWorld, PMVHaven, JAV Guru.
+
+## v0.3.4: installata sulla TV il 14/11/2026 verso le 16:45 (ora di Roma), provata con i tasti veri del telecomando di rete
+- Telecomando di rete abbinato con il nome "GrokBot": Adam ha premuto Consenti. Il token è salvato solo sul PC, in C:\tizen-apps\tools\tv-remote-token.txt.
+- Script: C:\tizen-apps\tools\tv-remote.mjs (comandi pair, key, keys, launch, status); richiede npm "ws" nella stessa cartella.
+- Il WebSocket integrato di Node apriva la connessione ma la TV non mostrava mai la richiesta di consenso. Con la libreria "ws" (compressione disattivata, sdb disconnesso) ha funzionato subito.
+- Verificato con i tasti veri:
+  - 0×5 attiva e disattiva la modalità adulti (PMVHaven e JAV Guru compaiono e spariscono da Sfoglia);
+  - Su×5 su "Libreria" nella barra laterale fa lo stesso;
+  - frecce, OK e Indietro funzionano; Indietro torna alla schermata precedente;
+  - alla radice Indietro non chiude l'app;
+  - l'avvio da Home con REST /api/v2/applications/<id> funziona.
+- Correzioni della 0.3.4:
+  - "Sinistra" verso la barra laterale va sulla scheda selezionata e non cambia scheda;
+  - dopo 0×5 il focus resta sulla barra laterale.
+- Nota: se l'app è già aperta normalmente, `sdb shell 0 debug` si blocca; prima bisogna chiuderla con was_kill.
