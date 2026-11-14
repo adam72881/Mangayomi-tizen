@@ -256,6 +256,8 @@
       focus() { reveal(); },
       blur() { paintFocus(); },
       get index() { return index; },
+      get length() { return items.length; },
+      jump(i) { if (!items.length) return; index = Math.max(0, Math.min(items.length - 1, i)); reveal(); },
       relayout() { measure(); bind(false); reveal(); },
     };
     host.addEventListener("click", () => api.activate());

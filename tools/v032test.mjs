@@ -153,6 +153,8 @@ await sleep(3500);
 await key(10009); await sleep(800);
 const btn2 = await ev("document.querySelector('[data-act=detail-play]').textContent");
 ok("dopo l'uscita: Riprendi Ep. 1 · 2:0x", /^Riprendi Ep\. 1  ·  2:\d\d$/.test(btn2), btn2);
+// L'elenco parte dall'alto (ultimo uscito): si scende fino all'Ep. 1, in fondo, come col telecomando.
+await ev("(()=>{const h=document.querySelector('[data-mount=episodes]'); h._grid.jump(h._grid.length-1); return 1})()"); await sleep(300);
 const row1 = await ev("(()=>{const r=[...document.querySelectorAll('[data-mount=episodes] .vrow')].find(r=>r.classList.contains('is-resume')); return r? r.innerText.replace(/\\n/g,' | '):null})()");
 ok("lista: episodio segnato 'Riprendi da'", row1 && /Riprendi da 2:\d\d/.test(row1), row1);
 await click('[data-act=detail-play]');
@@ -164,6 +166,7 @@ await sleep(3500);
 await key(10009); await sleep(800);
 const btn3 = await ev("document.querySelector('[data-act=detail-play]').textContent");
 ok("guardato oltre il 90% → Continua Ep. 2", /^Continua Ep\. 2$/.test(btn3), btn3);
+await ev("(()=>{const h=document.querySelector('[data-mount=episodes]'); h._grid.jump(h._grid.length-1); return 1})()"); await sleep(300);
 const watchedRows = await ev("[...document.querySelectorAll('[data-mount=episodes] .vrow.is-watched')].map(r=>r.innerText.replace(/\\n/g,' | '))");
 ok("lista: Ep. 1 segnato come visto", watchedRows.length === 1 && /✓/.test(watchedRows[0]) && /Visto/.test(watchedRows[0]), watchedRows);
 // pulizia progressi e cronologia del test

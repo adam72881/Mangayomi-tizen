@@ -143,3 +143,4 @@ Preparazione per proporre l'app al progetto Mangayomi.
   - tolti Tracciamento, Consigliati e Ordine di visione: sulla TV mostravano solo «non disponibile»;
   - episodi molto più grandi: righe da 128 px con miniatura 192×108 e testo più grande (`rowH` per griglia in `js/grid.js`);
   - tre test nuovi in `navtest.mjs`. Totale: 138 PASS, 0 FAIL.
+- **Elenco degli episodi dall'alto** (segnalato da Adam): come in Mangayomi, l'elenco parte dal primo in alto, cioè l'ultimo uscito. Prima si apriva già spostato sull'episodio suggerito (es. il 10) e quelli più recenti restavano nascosti sopra. L'episodio da guardare resta sul pulsante «Inizia/Riprendi/Continua». In `js/grid.js` ci sono `length` e `jump(i)` per spostarsi su un elemento (usati dai test per scendere all'Ep. 1). Totale: 139 PASS, 0 FAIL.

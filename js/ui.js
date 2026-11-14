@@ -262,7 +262,9 @@
           variant: "rows",
           rowH: 128,
           items: built,
-          focusIndex: frame.epFocus != null ? frame.epFocus : resumeChoice(frame.sourceId, frame.link, chaptersOf(frame.manga || {})).idx,
+          // Come in Mangayomi l'elenco parte dall'alto (l'ultimo episodio uscito):
+          // l'episodio da guardare è già sul pulsante «Inizia/Continua».
+          focusIndex: frame.epFocus != null ? frame.epFocus : 0,
           onIndex: (i) => { frame.epFocus = i; },
           onActivate: (item, i) => playFromDetail(frame, i),
         });
