@@ -74,6 +74,18 @@ await waitFor("document.querySelectorAll('[data-mount=episodes] .vrow').length>0
 await click('[data-act=detail-play]');
 const started = await waitFor("(()=>{const v=document.getElementById('player-video'); return v && v.readyState>=2 && v.currentTime>0.5})()", 60000);
 ok("il video parte da solo", !!started);
+// AniSkip: ricerca vera (AniList + AniSkip) su One Piece ep. 1000, poi il pulsante a comparsa
+const real = await ev(`(async()=>{ const f={title:'One Piece (ITA)', sourceId:'x', episodes:[{name:'Episodio 1000'}], episodeIndex:0}; const save=Mly.player._frame(); /* la ricerca vale solo per il frame attivo: la provo a parte */ const t=Mly.player.cleanTitle(f.title); const r=await fetch('https://graphql.anilist.co',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:'query($s:String){Media(search:$s,type:ANIME){idMal}}',variables:{s:t}})}).then(x=>x.json()); const mal=r.data.Media.idMal; const sk=await fetch('https://api.aniskip.com/v2/skip-times/'+mal+'/1000?types[]=op&types[]=ed&episodeLength=0').then(x=>x.json()); return {titolo:t, mal, found:sk.found, op:(sk.results||[]).find(x=>x.skipType==='op')} })()`);
+ok("AniSkip: dal titolo «One Piece (ITA)» trova MyAnimeList 21 e i tempi della sigla dell'ep. 1000", real && real.titolo === "One Piece" && real.mal === 21 && real.found && real.op && real.op.interval.endTime > real.op.interval.startTime, real);
+await ev("(()=>{ const f=Mly.player._frame(); f.skipTimes=[{type:'op', start:30, end:120}]; const v=document.getElementById('player-video'); v.currentTime=40; return 1 })()"); await waitFor("document.getElementById('player-video').readyState>=2 && Math.abs(document.getElementById('player-video').currentTime-40)<5", 15000); await sleep(400);
+ok("durante la sigla compare «Salta sigla · OK»", await ev("(()=>{const b=document.getElementById('player-skip'); return !b.hidden && /Salta sigla/.test(b.textContent)})()"), await ev("document.getElementById('player-skip').outerHTML.slice(0,160)"));
+await key(13); await sleep(700);
+const dopoSkip = await ev("document.getElementById('player-video').currentTime");
+ok("OK durante la sigla la salta (arriva a fine sigla, senza mettere in pausa)", dopoSkip >= 118 && dopoSkip < 135 && await ev("!document.getElementById('player-video').paused"), dopoSkip);
+ok("finita la sigla il pulsante sparisce", await ev("document.getElementById('player-skip').hidden"));
+await ev("(()=>{ Mly.player._frame().skipTimes=[]; document.getElementById('player-video').currentTime=1; return 1 })()");
+await waitFor("(()=>{const v=document.getElementById('player-video'); return v.readyState>=3 && !v.paused && document.getElementById('player-wait').hidden})()", 20000); await sleep(300);
+
 ok("niente scritta sull'episodio successivo all'apertura", await ev("(()=>{const e=document.getElementById('player-error'); return !e || e.hidden || !/episodio successivo/i.test(e.textContent)})()"));
 ok("la rotella di caricamento sparisce quando il video è partito", await ev("(()=>{const w=document.getElementById('player-wait'); const rule=[...document.styleSheets].some(s=>{try{return [...s.cssRules].some(r=>r.name==='player-spin'||(r.selectorText||'')==='.player-wait')}catch(e){return false}}); return !!w && w.hidden && w.classList.contains('player-wait') && rule})()"));
 const buf = await ev("(()=>{const v=document.getElementById('player-video'), w=document.getElementById('player-wait'); v.dispatchEvent(new Event('waiting')); const a=!w.hidden; v.dispatchEvent(new Event('playing')); return {durante:a, dopo:!w.hidden}})()");

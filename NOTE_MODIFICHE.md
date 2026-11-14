@@ -167,3 +167,9 @@ Preparazione per proporre l'app al progetto Mangayomi.
   - «Automatica (come Mangayomi)», con copertine larghe al massimo 150 dp, oppure da 4 a 10 per riga;
   - vale per Libreria, sorgenti e ricerca (`settings.gridCols`, letto da `measure()` in `js/grid.js`);
   - quattro test nuovi. Totale: 150 PASS, 0 FAIL.
+- **Pulsante a comparsa «Salta sigla» / «Salta finale»** (AniSkip), chiesto da Adam:
+  - All'avvio di un episodio il lettore cerca il numero MyAnimeList su AniList partendo dal titolo («(ITA)», «Sub ITA»… vengono tolti; il numero resta in memoria sulla TV). Poi chiede ad AniSkip (`api.aniskip.com`, database della community) i tempi di sigla iniziale e finale di quell'episodio.
+  - Ogni richiesta ha un tempo massimo di 4 s. Se non c'è risposta, o i tempi non ci sono, non cambia niente e resta «+85 s».
+  - Durante la sigla compare in basso a destra «Salta sigla · OK» (o «Salta finale»). OK salta alla fine della sigla senza mettere in pausa, poi il pulsante sparisce. Nessun salto automatico.
+  - Le sorgenti per adulti sono escluse: i loro titoli non vengono mandati ad AniList.
+  - Test: ricerca vera (One Piece (ITA) → MyAnimeList 21 → sigla dell'ep. 1000 da 0:14 a 2:04), comparsa del pulsante, salto con OK, scomparsa. Totale: 154 PASS, 0 FAIL.

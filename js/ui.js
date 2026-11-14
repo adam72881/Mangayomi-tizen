@@ -722,6 +722,7 @@
       '<div class="player-top"><div class="player-name">' + esc(frame.title) + '</div><div class="player-ep">' + esc(frame.episodeName) + "</div></div>" +
       '<div id="player-center" class="player-center" hidden>' + ICON.play + "</div>" +
       '<div id="player-wait" class="player-wait" role="status" aria-label="Caricamento"></div>' +
+      '<button type="button" id="player-skip" class="skip-pop" data-act="player-skip" hidden><span class="skip-label">Salta sigla</span><span class="skip-key">OK</span></button>' +
       '<p id="player-error" class="player-error" hidden></p>' +
       '<div class="player-bottom">' +
       '<div class="seek-row"><span id="player-cur" class="player-t">0:00</span><div class="track"><div id="player-bar" class="track-fill"></div><div id="player-knob" class="track-knob"></div></div><span id="player-dur" class="player-t">0:00</span></div>' +
@@ -1370,6 +1371,7 @@
     if (act === "noop") return;
     if (act === "push") { stack.push({ name: el.dataset.screen }); render(); return; }
     if (act === "stats-refresh") { render(); return; }
+    if (act === "player-skip") { Mly.player.doSkip(); Mly.player.paintChrome(); return; }
     if (act === "set-cols") {
       Mly.memory.settings.gridCols = Number(el.dataset.n) || 0;
       Mly.db.saveSettings();
