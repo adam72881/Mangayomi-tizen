@@ -437,7 +437,9 @@
     });
     video.addEventListener("ended", onEnded);
     video.addEventListener("playing", () => { played = true; setWaiting(false); clearError(); paintChrome(); show(); });
-    video.addEventListener("waiting", () => { if (!played) setWaiting(true); });
+    // Rotella all'avvio e anche durante il buffering (issue #9); sparisce appena ci sono fotogrammi.
+    video.addEventListener("waiting", () => setWaiting(true));
+    video.addEventListener("canplay", () => { if (played) setWaiting(false); });
     video.addEventListener("pause", paintChrome);
     video.addEventListener("error", () => {
       if (!video || !video.getAttribute("src")) return;
@@ -547,13 +549,15 @@
 
   function openBar() {
     const btns = controls();
-    // Mangayomi parks focus on play/pause, in the middle of the bottom bar.
-    ctl = btns.findIndex((b) => b.dataset.pc === "play" && usable(b));
+    // Issue #8: Giù apre i comandi con il focus sulla fila dei pulsanti in basso
+    // (Salta intro, poi Qualità), non su Play né direttamente su Qualità.
+    ctl = btns.findIndex((b) => b.dataset.pc === "skip" && usable(b));
+    if (ctl < 0) ctl = btns.findIndex((b) => b.dataset.pc === "quality" && usable(b));
     if (ctl < 0) ctl = btns.findIndex(usable);
   }
 
-  // Keys. Left/Right ±10 s, OK pause. Down opens the bottom bar on Play
-  // (as in Mangayomi). In the bar: Left/Right move, OK presses, Up or Back
+  // Keys. Left/Right ±10 s, OK pause. Down opens the bottom bar on Salta intro
+  // (issue #8). In the bar: Left/Right move, OK presses, Up or Back
   // leave it. Media keys work everywhere.
   function handleKey(e) {
     if (!frame) return false;

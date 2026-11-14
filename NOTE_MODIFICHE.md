@@ -73,3 +73,6 @@ Le correzioni principali sono nei commit 990aa14, 9db8e78 e 1ff1ddc di questo ra
   - In `playertest.mjs`, prima di controllare l'icona di pausa, si aspetta che il video abbia un fotogramma. Dopo il salto di 85 s, con una rete lenta, il test falliva a caso.
   - Risultato con Chromium headless: 120 PASS, 0 FAIL.
 - Versione 0.3.6 in config.xml e in Informazioni.
+- **#8** Giù durante il video apre i comandi con il focus su «Salta intro», nella fila dei pulsanti in basso (su Qualità se Salta intro non c'è). Prima andava su Play. Su continua a non portare su Qualità.
+- **#9** La rotella compare anche durante il buffering, non solo prima che il video parta, e sparisce appena ci sono fotogrammi (`waiting` / `playing` / `canplay`). All'apertura del lettore non compare più «Non c'è un episodio successivo» (correzione di 1ff1ddc, coperta dal test).
+- Test headless dopo queste modifiche: 121 PASS, 0 FAIL.

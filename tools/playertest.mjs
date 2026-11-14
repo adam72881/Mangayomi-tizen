@@ -76,6 +76,8 @@ const started = await waitFor("(()=>{const v=document.getElementById('player-vid
 ok("il video parte da solo", !!started);
 ok("niente scritta sull'episodio successivo all'apertura", await ev("(()=>{const e=document.getElementById('player-error'); return !e || e.hidden || !/episodio successivo/i.test(e.textContent)})()"));
 ok("la rotella di caricamento sparisce quando il video è partito", await ev("(()=>{const w=document.getElementById('player-wait'); const rule=[...document.styleSheets].some(s=>{try{return [...s.cssRules].some(r=>r.name==='player-spin'||(r.selectorText||'')==='.player-wait')}catch(e){return false}}); return !!w && w.hidden && w.classList.contains('player-wait') && rule})()"));
+const buf = await ev("(()=>{const v=document.getElementById('player-video'), w=document.getElementById('player-wait'); v.dispatchEvent(new Event('waiting')); const a=!w.hidden; v.dispatchEvent(new Event('playing')); return {durante:a, dopo:!w.hidden}})()");
+ok("#9 la rotella compare anche durante il buffering e sparisce quando riparte", buf && buf.durante === true && buf.dopo === false, buf);
 const ui = await ev("(()=>{const q=document.getElementById('player-qualities'); const sh=document.getElementById('player-shade'); return {listaQualita: getComputedStyle(q).display, testo: sh.innerText.replace(/\\n+/g,' | '), titolo: document.querySelector('.player-name').textContent, ep: document.querySelector('.player-ep').textContent, tempi:[document.getElementById('player-cur').textContent, document.getElementById('player-dur').textContent], pulsanti:[...document.querySelectorAll('#player-ctl [data-pc]')].map(b=>b.dataset.pc+(b.disabled?'(off)':''))}})()");
 ok("nessuna lista qualità all'avvio", ui.listaQualita === "none", ui.listaQualita);
 ok("nessuna etichetta 'AnimeWorld' nel lettore", !/AnimeWorld/.test(ui.testo), ui.testo);
@@ -86,7 +88,7 @@ let t0 = await t(); await key(39); await sleep(400);
 ok("Destra (senza barra): avanti 10 s come prima", (await t()) - t0 > 8, { prima: t0, dopo: await t() });
 await key(40); await sleep(150);
 let s1 = await st();
-ok("Giù apre la barra in basso sul tasto Play", s1.ctl >= 0 && s1.focused === "play", s1);
+ok("#8 Giù apre la barra in basso su Salta intro (non su Qualità)", s1.ctl >= 0 && s1.focused === "skip", s1);
 await key(38); await sleep(100);
 ok("Su non apre la barra su Qualità", (await st()).ctl === -1, await st());
 await key(40); await sleep(150);
@@ -118,7 +120,7 @@ ok("un tasto la fa ricomparire", await ev("document.getElementById('player-shade
 // foglio Qualità (simulo una seconda qualità sullo stesso flusso)
 await ev("(()=>{const f=Mly.player._frame(); f.videos.push(Object.assign({}, f.videos[0], {quality:'Copia di prova 720p'})); document.getElementById('player-quality-rows').innerHTML=Mly.ui.qualityRows(f.videos); Mly.player.paintChrome(); return 1})()");
 await key(40); await sleep(150);
-ok("Giù apre la barra su Play anche con più qualità", (await st()).focused === "play", await st());
+ok("#8 Giù apre la barra su Salta intro anche con più qualità", (await st()).focused === "skip", await st());
 for (let i = 0; i < 8 && (await st()).focused !== "quality"; i++) { await key(39); await sleep(80); }
 ok("Destra dalla barra arriva su Qualità", (await st()).focused === "quality", await st());
 ok("il pulsante Qualità mostra la risoluzione in uso, senza il nome del server", /^(\d+p|Video)$/.test(await ev("document.querySelector('[data-pc=quality] .pctl-label').textContent")), await ev("document.querySelector('[data-pc=quality] .pctl-label').textContent"));
