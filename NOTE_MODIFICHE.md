@@ -1,3 +1,22 @@
+# Mangayomi per TV Samsung: modifiche e stato
+
+Questo è l'unico file con le modifiche di ogni versione e lo stato attuale. `docs/STATO_E_PIANO.md` resta come diario storico dei primi passi (ambiente, firma, installazione).
+
+## Stato attuale (v0.3.6, ramo `cursor/v035-tizen-5ab3`, PR #1)
+
+- `main` è la v0.3.4. La v0.3.6 è passata nei test headless ma **non è ancora stata installata né provata sulla TV**: il pacchetto va rifirmato da questa versione.
+- **Test:** `tools/run-tests.sh` dalla radice del repository. Servono node 20+, Chrome o Chromium (variabile `CHROME`) e Internet: i test usano il repository delle estensioni e i siti veri.
+  - Il server locale è `tools/servefull.mjs`, sulla porta 8770 con la stessa CSP di config.xml. Chrome headless gira con CDP sulla porta 9444.
+  - I test girano in quest'ordine: `v032test`, `uninstalltest`, `playertest`, `navtest`.
+  - `javtest` e `hypnotest` sono facoltativi: da un server quei siti rispondono con un controllo del browser o con l'age-gate.
+- **Limiti noti:**
+  - Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell'età non vengono aggirati.
+  - Sottotitoli: solo tracce WebVTT fornite dall'estensione in `video.subtitles`. SRT e sottotitoli HLS non sono gestiti.
+  - Stripchat: il segnaposto da 12 s («Find the real thing on STRIPCHAT.COM», stanza privata o offline) non parte e compare «Stanza privata o offline». L'HD protetto dal sito non si aggira.
+  - I problemi delle singole estensioni vanno nel repository adam72881/mangayomi-anime-extensions (HypnoTube: `docs/HYPNOTUBE_POPOLARI.md`).
+
+---
+
 # Modifiche fatte prima dell'installazione sulla TV (14/11/2026)
 
 - config.xml:
@@ -40,3 +59,47 @@
 
 - js/nav.js: "Sinistra" dal contenuto verso la barra laterale ora va sulla scheda già selezionata, come in Mangayomi. Prima andava sul pulsante della barra allineato in altezza e cambiava scheda senza volerlo (dal centro della Libreria si finiva su Cronologia).
 - js/ui.js: dopo l'attivazione o disattivazione della modalità nascosta (0×5) il focus resta sulla barra laterale, se era lì. Prima saltava nel contenuto.
+
+# v0.3.5 (14/11/2026), non ancora installata sulla TV
+
+- js/ui.js e css/app.css: prima di disinstallare un'estensione compare una conferma, come in Mangayomi: "Disinstalla – Vuoi disinstallare <nome>? Potrai reinstallarla da Estensioni.", con i pulsanti "Annulla" e "Disinstalla".
+  - Il focus parte su "Annulla"; con Sinistra/Destra si passa da un pulsante all'altro.
+  - Indietro e "Annulla" chiudono senza toccare nulla e il focus torna sul pulsante di partenza. Dopo la disinstallazione il focus torna sulla riga dell'estensione.
+  - Libreria, cronologia e impostazioni della sorgente non vengono cancellate.
+- icon.png: l'icona provvisoria è stata sostituita con l'icona ufficiale di Aniyomi, su scelta di Adam. È il disegno vettoriale del launcher Android (`app/src/main/res/drawable/ic_launcher_foreground.xml` di github.com/aniyomiorg/aniyomi), convertito in SVG (`icon-source.svg`) e poi in un PNG 512x512 con sfondo trasparente. Licenza Apache-2.0: vedi `THIRD_PARTY_NOTICES.md`.
+- Estensioni (js/ui.js, js/nav.js): ogni riga ha i suoi pulsanti veri (Installa / Aggiorna / Disinstalla), raggiungibili con le frecce come in Mangayomi. Destra va sul pulsante, Sinistra torna alla riga (e poi alla barra laterale), Su/Giù cambiano riga restando nella stessa colonna, Su da "Aggiorna" (in fondo) torna all'ultima riga. Dopo Installa/Disinstalla il focus resta sul pulsante della riga e non salta più in cima.
+- Entrando in una sorgente, durante il caricamento il focus è sulla scheda Popolari/Ultimi; a caricamento finito va sulla prima copertina. Prima finiva su "Cerca".
+- Copertine (js/grid.js, css/app.css) come la griglia compatta di Mangayomi su TV: larghezza massima 150 dp, proporzione 0,69, spazio di 10 dp, angoli arrotondati da 6 dp, anello di focus da 3 dp fuori dal ritaglio, la copertina col focus si ingrandisce di 1,06, titolo bianco su due righe sopra una sfumatura scura. Il titolo ora si vede ovunque (Libreria, Sfoglia, ricerca). È stato corretto anche il riquadro sfalsato: lo span della copertina era in linea e l'immagine usciva dal bordo agli angoli.
+- `[hidden]` ora nasconde davvero anche gli elementi con display:flex. La lista delle qualità aveva display:flex e quindi compariva da sola all'avvio (per esempio "Originale - 480p / 240p" su Stripchat).
+- Lettore (js/player.js, js/ui.js, css/app.css) in stile Mangayomi:
+  - In alto titolo ed episodio; in basso la barra di avanzamento con i tempi e la fila dei comandi: episodio precedente, -10 s, Play/Pausa, +10 s, episodio successivo, "+85 s Salta intro" (la durata predefinita di Mangayomi), Qualità, Sottotitoli.
+  - Il video parte da solo alla qualità più alta. La qualità si cambia solo dal pulsante Qualità, che apre un pannello in basso con testo grande e la spunta sulla qualità attuale.
+  - Il cartellino "AnimeWorld" a destra non c'è più: il pulsante mostra solo la risoluzione.
+  - I comandi spariscono dopo 3 s senza tasti durante la riproduzione e ricompaiono con qualsiasi tasto. Restano visibili in pausa o con un menu aperto.
+  - Tasti come prima: Sinistra/Destra -10/+10 s, OK pausa, Giù episodio successivo, Indietro chiude il lettore. Su ora entra nella fila dei comandi (su Qualità, oppure su Salta intro se c'è una sola qualità). Lì Sinistra/Destra si spostano, OK preme, Su/Giù/Indietro escono dalla fila. Funzionano anche i tasti multimediali (Play/Pausa, avanti/indietro, traccia successiva/precedente).
+  - I sottotitoli forniti dall'estensione (file WebVTT) si attivano a giro dal pulsante Sottotitoli.
+- HypnoTube: "Popolari" e "Ultimi" uguali. Non è colpa dell'app, che chiama getPopular e getLatestUpdates separatamente. L'estensione 1.4.2, con "Popular a sorpresa" attivo (lo è di default), può pescare proprio l'ordine "Recenti", oppure "Casuale" a partire dalla pagina 1 dei recenti. La correzione è nella patch separata per il repository delle estensioni (HypnoTube 1.4.3), non ancora unita.
+
+
+# v0.3.6 (14/11/2026), correzioni dopo la prova sulla TV della 0.3.5, non ancora installata
+
+Le correzioni principali sono nei commit 990aa14, 9db8e78 e 1ff1ddc di questo ramo (griglia, lettore, focus). Questo commit aggiunge:
+
+- **#5** In js/nav.js `data-down` funziona come `data-up`. Le schede Popolari/Ultimi hanno `data-down="grid-source"`, quindi Giù dalla scheda torna sulle copertine: prima andava su «Carica altro», che era più vicino in linea retta.
+- **#6** Il pulsante Filtri ha `data-fid="src-filter"`. Così, se la schermata viene ridisegnata mentre il pannello è aperto, alla chiusura il focus torna comunque su Filtri. Le schede di Sfoglia hanno `data-fid="browse-<scheda>"`.
+- **Test headless:**
+  - Nuovo `tools/navtest.mjs`, aggiunto a `tools/run-tests.sh`. Controlla la griglia compatta (7–10 copertine per riga, spazio piccolo); che la seconda sorgente abbia la stessa cella della prima (#4); Su verso la scheda e Giù di nuovo sulla griglia (#5); il focus dopo i Filtri e dopo un messaggio (#6); Su dalla prima riga delle Estensioni e il ritorno sulla riga della sorgente (#7).
+  - In `playertest.mjs`, prima di controllare l'icona di pausa, si aspetta che il video abbia un fotogramma. Dopo il salto di 85 s, con una rete lenta, il test falliva a caso.
+  - Risultato con Chromium headless: 120 PASS, 0 FAIL.
+- Versione 0.3.6 in config.xml e in Informazioni.
+- **#8** Giù durante il video apre i comandi con il focus su «Salta intro», nella fila dei pulsanti in basso (su Qualità se Salta intro non c'è). Prima andava su Play. Su continua a non portare su Qualità.
+- **#9** La rotella compare anche durante il buffering, non solo prima che il video parta, e sparisce appena ci sono fotogrammi (`waiting` / `playing` / `canplay`). All'apertura del lettore non compare più «Non c'è un episodio successivo» (correzione di 1ff1ddc, coperta dal test).
+- Test headless dopo queste modifiche: 121 PASS, 0 FAIL.
+- **Sottotitoli**: il pulsante c'è di nuovo, ma compare **solo quando la sorgente fornisce delle tracce**. Altrimenti è nascosto e il D-pad lo salta.
+- **Griglia come Mangayomi ufficiale** (`gridview_widget.dart` e `cover_view_widget.dart`, con 1 dp = 2 px):
+  - copertine larghe al massimo 150 dp (300 px), 10 dp (20 px) tra una cella e l'altra, 4 dp (8 px) di margine per copertina, proporzione 0,69;
+  - angoli di 6 dp, anello del focus di 3 dp, titolo di 14 dp;
+  - su questa TV sono 6 copertine per riga da circa 289 px.
+  I grandi vuoti visti sulla TV nella v0.3.5 erano dovuti a #4 (celle non dimensionate dalla seconda griglia in poi), ora corretto.
+- **Documentazione**: `docs/V035_STATO.md` è stato tolto. Ripeteva questo file: le parti ancora utili (test e limiti) sono in «Stato attuale» qui in cima.
+- Test headless: 123 PASS, 0 FAIL.

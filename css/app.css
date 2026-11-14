@@ -1,4 +1,5 @@
 * { box-sizing: border-box; }
+[hidden] { display: none !important; }
 html, body { margin: 0; height: 100%; overflow: hidden; background: #141218; color: #e6e0e9; font-family: "Segoe UI", system-ui, sans-serif; font-size: 20px; }
 button, [data-focus] { font: inherit; color: inherit; background: transparent; border: 3px solid transparent; border-radius: 14px; text-align: left; }
 button:focus, [data-focus]:focus, .vgrid-host:focus { outline: none; }
@@ -32,11 +33,21 @@ img { display: block; }
 .vgrid-viewport { position: absolute; inset: 0; overflow: hidden; }
 .vgrid-track { position: relative; width: 100%; will-change: transform; }
 .vcell, .vrow { position: absolute; top: 0; left: 0; padding: 0; overflow: hidden; }
-.vcell { width: 168px; height: 286px; }
-.vcell-img, .vrow-thumb { background: #2b2930; border: 3px solid transparent; border-radius: 12px; overflow: hidden; }
-.vcell.is-focused .vcell-img, .vrow.is-focused .vrow-thumb { border-color: #d0bcff; }
-.vcell-img img { width: 162px; height: 240px; object-fit: cover; }
-.vcell-title, .vrow-title { display: block; margin-top: 6px; font-size: 16px; line-height: 1.25; max-height: 40px; overflow: hidden; }
+.vrow-thumb { background: #2b2930; border: 3px solid transparent; border-radius: 12px; overflow: hidden; }
+.vrow.is-focused .vrow-thumb { border-color: #d0bcff; }
+.vrow-title { display: block; margin-top: 6px; font-size: 16px; line-height: 1.25; max-height: 40px; overflow: hidden; }
+/* Covers: Mangayomi compact grid (dp x 2). 4 dp padding, 6 dp radius,
+   3 dp focus ring outside the clip with radius 6+3, focused cover lifts 1.06,
+   title 14 dp w600 white, 2 lines, on a 70 dp gradient to #00000099. */
+.vcell { width: var(--cell-w, 260px); height: var(--cell-h, 377px); padding: 8px; overflow: visible; background: none; border: 0; }
+.vcell-card { display: block; width: 100%; height: 100%; padding: 0; border: 6px solid transparent; border-radius: 18px; box-sizing: border-box; }
+.vcell.is-focused .vcell-card { border-color: #d0bcff; transform: scale(1.06); }
+.vcell.is-focused { z-index: 2; }
+.vcell-img { position: relative; display: block; width: 100%; height: 100%; border-radius: 12px; overflow: hidden; background: #2b2930; }
+.vcell-img img { position: absolute; top: 0; left: 0; display: block; width: 100%; height: 100%; object-fit: cover; border: 0; }
+.vcell-img.broken img, .vcell-img img:not([src]) { visibility: hidden; }
+.vcell-shade { position: absolute; left: 0; right: 0; bottom: 0; height: 140px; background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.6)); pointer-events: none; }
+.vcell-title { position: absolute; left: 8px; right: 8px; bottom: 8px; margin: 0; color: #fff; font-size: 28px; font-weight: 600; line-height: 1.2; max-height: 2.4em; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; text-overflow: ellipsis; text-shadow: 0 0 3px rgba(0,0,0,0.4); text-align: left; word-break: break-word; }
 .vrow { width: calc(100% - 8px); height: 84px; display: flex; gap: 12px; align-items: center; padding: 0 8px; }
 .vrow-thumb img { width: 96px; height: 54px; object-fit: cover; }
 .vrow-text { min-width: 0; }
@@ -76,19 +87,50 @@ img { display: block; }
 .key.wide { min-width: 160px; }
 .player-screen { padding: 0; position: relative; background: #000; height: 100%; }
 #player-video { position: absolute; inset: 0; width: 100%; height: 100%; background: #000; }
-.player-shade { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; }
-.player-shade button, .quality-list { pointer-events: auto; }
-.player-top, .player-bottom { padding: 36px 48px; background: rgba(0, 0, 0, 0.55); }
-.player-name { font-size: 32px; font-weight: 700; }
-.player-quality { color: #d0bcff; margin-bottom: 8px; }
-.track { height: 8px; background: #2b2930; border-radius: 4px; overflow: hidden; }
-.track-fill { height: 100%; width: 100%; background: #d0bcff; transform: scaleX(0); transform-origin: left center; }
-.player-hint, .player-error { color: #e6e0e9; }
-.quality-list { position: absolute; right: 48px; bottom: 160px; display: flex; flex-direction: column; gap: 6px; background: #211f26; padding: 12px; border-radius: 14px; }
-.quality-list button { padding: 8px 12px; background: #2b2930; }
-.quality-list button.is-focused, .quality-list button.is-current { border-color: #d0bcff; }
+.player-shade { position: absolute; inset: 0; display: flex; flex-direction: column; justify-content: space-between; pointer-events: none; opacity: 0; }
+.player-shade.is-shown { opacity: 1; }
+.player-shade button, .quality-sheet { pointer-events: auto; }
+/* Mangayomi player: dark gradients top and bottom, no boxes. */
+.player-top { padding: 40px 56px 80px; background: linear-gradient(to bottom, rgba(0,0,0,0.75), rgba(0,0,0,0)); }
+.player-name { font-size: 34px; font-weight: 700; color: #fff; }
+.player-ep { font-size: 24px; color: #e6e0e9; margin-top: 4px; }
+.player-center { position: absolute; left: 50%; top: 50%; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 60px; background: rgba(0,0,0,0.45); display: flex; align-items: center; justify-content: center; }
+.player-wait { position: absolute; left: 50%; top: 50%; width: 88px; height: 88px; margin: -44px 0 0 -44px; border-radius: 50%; border: 8px solid rgba(255,255,255,0.28); border-top-color: #d0bcff; animation: player-spin 0.9s linear infinite; }
+@keyframes player-spin { to { transform: rotate(360deg); } }
+.player-center svg { width: 72px; height: 72px; fill: #fff; }
+.player-bottom { padding: 90px 56px 40px; background: linear-gradient(to top, rgba(0,0,0,0.8), rgba(0,0,0,0)); }
+.seek-row { display: flex; align-items: center; gap: 24px; }
+.player-t { min-width: 96px; font-size: 22px; color: #fff; font-variant-numeric: tabular-nums; }
+.seek-row .player-t:last-child { text-align: right; }
+.track { position: relative; flex: 1; height: 8px; background: rgba(255,255,255,0.25); border-radius: 4px; }
+.track-fill { position: absolute; inset: 0; background: #d0bcff; border-radius: 4px; transform: scaleX(0); transform-origin: left center; }
+.track-knob { position: absolute; top: 50%; left: 0; width: 22px; height: 22px; margin: -11px 0 0 -11px; border-radius: 11px; background: #d0bcff; }
+.ctl-row { display: flex; align-items: center; justify-content: space-between; margin-top: 20px; }
+.ctl-group { display: flex; align-items: center; gap: 14px; }
+.pctl { display: inline-flex; align-items: center; justify-content: center; gap: 8px; color: #fff; background: transparent; border: 3px solid transparent; border-radius: 40px; padding: 8px; }
+.pctl svg { width: 44px; height: 44px; fill: #fff; }
+.pctl.big svg { width: 60px; height: 60px; }
+.pctl.pill-btn { padding: 10px 22px; background: rgba(255,255,255,0.12); font-size: 22px; }
+.pctl.is-focused { border-color: #d0bcff; background: rgba(208,188,255,0.25); }
+.pctl:disabled { opacity: 0.35; }
+.player-error { color: #ffb4ab; text-align: center; font-size: 24px; text-shadow: 0 0 4px #000; }
+/* Quality picker: Mangayomi-style bottom sheet. */
+.quality-sheet { position: absolute; left: 50%; bottom: 0; width: 820px; margin-left: -410px; max-height: 70%; display: flex; flex-direction: column; background: #211f26; border-radius: 28px 28px 0 0; padding: 12px 0 24px; box-shadow: 0 -8px 32px rgba(0,0,0,0.5); }
+.sheet-handle { width: 64px; height: 6px; border-radius: 3px; background: #49454f; margin: 0 auto 12px; }
+.sheet-title { margin: 0 0 8px; padding: 0 40px; font-size: 30px; font-weight: 600; color: #e6e0e9; }
+.sheet-rows { overflow: hidden; display: flex; flex-direction: column; }
+.sheet-row { display: flex; align-items: center; gap: 20px; min-height: 76px; padding: 0 40px; background: transparent; border: 0; border-radius: 0; color: #e6e0e9; font-size: 28px; text-align: left; }
+.sheet-row.is-focused { background: rgba(208,188,255,0.18); box-shadow: inset 6px 0 0 #d0bcff; }
+.sheet-check { width: 36px; height: 36px; flex: none; }
+.sheet-check svg { width: 36px; height: 36px; fill: #d0bcff; visibility: hidden; }
+.sheet-row.is-current .sheet-check svg { visibility: visible; }
+.sheet-row.is-current .sheet-label { color: #d0bcff; font-weight: 600; }
 hr { border: 0; border-top: 1px solid #49454f; }
 #toast { position: absolute; left: 50%; bottom: 40px; transform: translateX(-50%); background: #2b2930; color: #cac4d0; font-size: 16px; padding: 6px 14px; border-radius: 10px; opacity: 0; pointer-events: none; }
 #toast.on { opacity: 1; }
 .vrow.is-watched { opacity: 0.6; }
 .vrow.is-watched .vrow-meta { color: #a8c7a0; }
+.confirm-row { justify-content: flex-end; }
+.primary.danger { background: #8c1d18; color: #ffdad6; }
+.row-btn { min-width: 150px; text-align: center; }
+.row-btn.is-install { color: #d0bcff; }
