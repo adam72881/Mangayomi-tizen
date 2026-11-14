@@ -82,11 +82,13 @@ const st = () => ev("Mly.player.state()");
 const t = () => ev("document.getElementById('player-video').currentTime");
 let t0 = await t(); await key(39); await sleep(400);
 ok("Destra (senza barra): avanti 10 s come prima", (await t()) - t0 > 8, { prima: t0, dopo: await t() });
-await key(38); await sleep(150);
+await key(40); await sleep(150);
 let s1 = await st();
-ok("Su: entra nella barra comandi (Qualità, o Salta intro se c'è una sola qualità)", s1.ctl >= 0 && (s1.focused === "quality" || s1.focused === "skip"), s1);
-// porta il focus su Salta intro
-for (let i = 0; i < 8 && (await st()).focused !== "skip"; i++) { await key(37); await sleep(80); }
+ok("Giù apre la barra in basso sul tasto Play", s1.ctl >= 0 && s1.focused === "play", s1);
+await key(38); await sleep(100);
+ok("Su non apre la barra su Qualità", (await st()).ctl === -1, await st());
+await key(40); await sleep(150);
+for (let i = 0; i < 8 && (await st()).focused !== "skip"; i++) { await key(39); await sleep(80); }
 ok("Salta intro raggiungibile con le frecce", (await st()).focused === "skip", await st());
 t0 = await t(); await key(13); await sleep(600);
 const t1 = await t();
@@ -111,8 +113,10 @@ await key(39); await sleep(200);
 ok("un tasto la fa ricomparire", await ev("document.getElementById('player-shade').classList.contains('is-shown')"));
 // foglio Qualità (simulo una seconda qualità sullo stesso flusso)
 await ev("(()=>{const f=Mly.player._frame(); f.videos.push(Object.assign({}, f.videos[0], {quality:'Copia di prova 720p'})); document.getElementById('player-quality-rows').innerHTML=Mly.ui.qualityRows(f.videos); Mly.player.paintChrome(); return 1})()");
-await key(38); await sleep(150);
-ok("con più qualità Su va sul pulsante Qualità", (await st()).focused === "quality", await st());
+await key(40); await sleep(150);
+ok("Giù apre la barra su Play anche con più qualità", (await st()).focused === "play", await st());
+for (let i = 0; i < 8 && (await st()).focused !== "quality"; i++) { await key(39); await sleep(80); }
+ok("Destra dalla barra arriva su Qualità", (await st()).focused === "quality", await st());
 ok("il pulsante Qualità mostra la risoluzione in uso, senza il nome del server", /^(\d+p|Video)$/.test(await ev("document.querySelector('[data-pc=quality] .pctl-label').textContent")), await ev("document.querySelector('[data-pc=quality] .pctl-label').textContent"));
 await key(13); await sleep(200);
 const sheet = await ev("(()=>{const q=document.getElementById('player-qualities'); const r=q.getBoundingClientRect(); const rows=[...q.querySelectorAll('.sheet-row')]; return {display:getComputedStyle(q).display, bottom:Math.round(window.innerHeight-r.bottom), w:Math.round(r.width), titolo:q.querySelector('.sheet-title').textContent, font:getComputedStyle(rows[0]).fontSize, righe:rows.map(x=>x.innerText.trim()), spunta:rows.map(x=>getComputedStyle(x.querySelector('svg')).visibility), focus:rows.findIndex(x=>x.classList.contains('is-focused'))}})()");

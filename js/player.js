@@ -520,10 +520,16 @@
     }
   }
 
-  // Keys. Without the control row focused they work as before:
-  // Left/Right -10/+10 s, OK pause, Down next episode, Up opens the control row
-  // on Qualità (OK there opens the list). In the row: Left/Right move, OK presses,
-  // Up/Down/Back leave the row. Media keys work everywhere.
+  function openBar() {
+    const btns = controls();
+    // Mangayomi parks focus on play/pause, in the middle of the bottom bar.
+    ctl = btns.findIndex((b) => b.dataset.pc === "play" && usable(b));
+    if (ctl < 0) ctl = btns.findIndex(usable);
+  }
+
+  // Keys. Left/Right ±10 s, OK pause. Down opens the bottom bar on Play
+  // (as in Mangayomi). In the bar: Left/Right move, OK presses, Up or Back
+  // leave it. Media keys work everywhere.
   function handleKey(e) {
     if (!frame) return false;
     const key = e.key;
@@ -550,7 +556,8 @@
       if (key === "ArrowLeft") moveCtl(-1);
       else if (key === "ArrowRight") moveCtl(1);
       else if (key === "Enter") press(controls()[ctl].dataset.pc);
-      else if (key === "ArrowUp" || key === "ArrowDown" || isBackKey(e)) ctl = -1;
+      else if (key === "ArrowUp" || isBackKey(e)) ctl = -1;
+      else if (key === "ArrowDown") { /* already on the bottom bar */ }
       else return false;
       paintChrome();
       return true;
@@ -558,13 +565,9 @@
     if (key === "ArrowLeft") seek(-10000);
     else if (key === "ArrowRight") seek(10000);
     else if (key === "Enter" || key === " ") toggle();
-    else if (key === "ArrowUp") {
-      const btns = controls();
-      ctl = btns.findIndex((b) => b.dataset.pc === "quality" && usable(b));
-      if (ctl < 0) ctl = btns.findIndex((b) => b.dataset.pc === "skip");
-    } else if (key === "ArrowDown") {
-      if (!nextEpisode()) showError("Non c'è un episodio successivo.");
-    } else return false;
+    else if (key === "ArrowDown") openBar();
+    else if (key === "ArrowUp") { /* reveals the overlay; does not jump to Qualità */ }
+    else return false;
     paintChrome();
     return true;
   }
