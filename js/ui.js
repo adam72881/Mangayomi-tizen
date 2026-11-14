@@ -98,6 +98,11 @@
     const k = order.indexOf(current);
     return k >= 0 && k + 1 < order.length ? order[k + 1] : -1;
   }
+  function prevIndex(chapters, current) {
+    const order = chronoOrder(chapters);
+    const k = order.indexOf(current);
+    return k > 0 ? order[k - 1] : -1;
+  }
   function resumeChoice(sourceId, link, chapters) {
     const prog = progressOf(sourceId, link);
     const order = chronoOrder(chapters);
@@ -211,6 +216,9 @@
     const shell = document.getElementById("shell");
     shell.classList.toggle("pushed", !!top());
     updateRail();
+    // On the main tabs, a redraw keeps focus on the same button when it is still there.
+    const was = Mly.nav.current();
+    if (!fid && !top() && was && stage().contains(was) && was.dataset.fid) fid = was.dataset.fid;
     stage().innerHTML = html;
     mountGrids();
     if (top() && top().name === "player") Mly.player.attach(top());
@@ -357,7 +365,9 @@
   function render() {
     const frame = top();
     if (!frame) paint(renderRoot(), null);
-    else if (frame.name === "source") paint(renderSource(frame), frame.loading ? "src-retry" : "grid-source");
+    // Entering a source, as in Mangayomi: focus on the Popolari/Ultimi tab while
+    // it loads, then on the first cover. Never on the Cerca button at the top.
+    else if (frame.name === "source") paint(renderSource(frame), frame.loading ? (frame.tab === "search" ? "src-search" : "src-tab-" + frame.tab) : frame.error ? "src-retry" : frame.items.length ? "grid-source" : (frame.tab === "search" ? "src-search" : "src-tab-" + frame.tab));
     else if (frame.name === "detail") paint(renderDetail(frame), "detail-play");
     else if (frame.name === "player") paint(renderPlayer(frame), null);
     else if (frame.name === "prefs") paint(renderPrefs(frame), null);
@@ -448,18 +458,25 @@
     if (root.extError) return '<div class="empty"><h2>Impossibile caricare il repository</h2><p>' + esc(root.extError) + '</p><button type="button" class="primary" data-focus data-autofocus data-act="reload-index">Riprova</button></div>';
     const index = (root.extIndex || []).filter((e) => adult || !e.isNsfw);
     if (!index.length) return '<div class="empty"><h2>Nessuna estensione</h2><button type="button" class="primary" data-focus data-act="reload-index">Aggiorna</button></div>';
-    return '<div class="rows">' + index.map((entry) => {
+    return '<div class="rows" data-rownav>' + index.map((entry) => {
       const installed = Mly.memory.extensions[String(entry.id)];
       let action = "Installa";
       let act = "install";
       if (installed && installed.version !== entry.version) { action = "Aggiorna"; act = "install"; }
       else if (installed) { action = "Installata"; act = "noop"; }
       const busy = root.busyId === String(entry.id);
-      return '<div class="row"><button type="button" class="row-main" data-focus data-act="' + act + '" data-eid="' + esc(entry.id) + '" data-fid="ext-' + esc(entry.id) + '">' +
+      const eid = esc(entry.id);
+      // Row, then its buttons, each reachable with the arrows (see nav.js, data-rownav).
+      // Button ids are by position so focus stays put when Installa turns into Disinstalla.
+      const buttons = [];
+      if (busy) buttons.push('<button type="button" class="text-btn row-btn" data-focus data-act="noop" data-eid="' + eid + '">…</button>');
+      else if (act === "install") buttons.push('<button type="button" class="text-btn row-btn' + (installed ? "" : " is-install") + '" data-focus data-act="install" data-eid="' + eid + '">' + action + "</button>");
+      if (installed && !busy) buttons.push('<button type="button" class="text-btn row-btn" data-focus data-act="uninstall" data-eid="' + eid + '">Disinstalla</button>');
+      const html = buttons.map((b, i) => b.replace("<button ", '<button data-fid="ext-' + eid + "-b" + (i + 1) + '" ')).join("");
+      return '<div class="row"><button type="button" class="row-main" data-focus data-act="' + (busy ? "noop" : act) + '" data-eid="' + eid + '" data-fid="ext-' + eid + '">' +
         '<span class="row-title">' + esc(entry.name) + "</span>" +
-        '<span class="row-meta">' + esc((entry.lang || "").toUpperCase()) + " · " + esc(entry.version) + (entry.isNsfw ? " · 18+" : "") + (entry.hasCloudflare ? " · Controllo browser" : "") + "</span></button>" +
-        (installed ? '<button type="button" class="text-btn" data-focus data-act="uninstall" data-eid="' + esc(entry.id) + '">Disinstalla</button>' : "") +
-        '<span class="row-action">' + (busy ? "…" : action) + "</span></div>";
+        '<span class="row-meta">' + esc((entry.lang || "").toUpperCase()) + " · " + esc(entry.version) + (entry.isNsfw ? " · 18+" : "") + (entry.hasCloudflare ? " · Controllo browser" : "") + (installed && act === "noop" ? " · Installata" : "") + "</span></button>" +
+        html + "</div>";
     }).join("") + '<div class="footer-row"><button type="button" class="text-btn" data-focus data-act="reload-index">Aggiorna</button></div></div>';
   }
 
@@ -500,7 +517,7 @@
   }
 
   function renderAbout() {
-    return screen("about", "Informazioni", '<div class="prose"><p>Mangayomi per TV Samsung. Libreria anime, estensioni e lettore, con la stessa API delle estensioni di Mangayomi.</p><p>Versione 0.3.4</p><p>Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell\'età non vengono aggirati.</p><p>La riproduzione parte alla qualità più alta. Per HLS si usa la variante più alta, non Auto.</p><p>Le estensioni arrivano dal repository indicato in Altro › Sfoglia.</p></div>', "");
+    return screen("about", "Informazioni", '<div class="prose"><p>Mangayomi per TV Samsung. Libreria anime, estensioni e lettore, con la stessa API delle estensioni di Mangayomi.</p><p>Versione 0.3.5</p><p>Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell\'età non vengono aggirati.</p><p>La riproduzione parte alla qualità più alta. Per HLS si usa la variante più alta, non Auto.</p><p>Le estensioni arrivano dal repository indicato in Altro › Sfoglia.</p></div>', "");
   }
 
   function renderPlayerSettings() {
@@ -524,10 +541,10 @@
 
   function renderSource(frame) {
     const src = sourceOf(frame.sourceId) || { name: "Sorgente" };
-    const tabs = '<div class="pills"><button type="button" class="pill' + (frame.tab === "popular" ? " is-on" : "") + '" data-focus data-act="src-tab" data-tab="popular">Popolari</button>' +
-      (frame.supportsLatest !== false ? '<button type="button" class="pill' + (frame.tab === "latest" ? " is-on" : "") + '" data-focus data-act="src-tab" data-tab="latest">Ultimi</button>' : "") +
+    const tabs = '<div class="pills"><button type="button" class="pill' + (frame.tab === "popular" ? " is-on" : "") + '" data-focus data-fid="src-tab-popular"' + (frame.tab === "popular" ? " data-autofocus" : "") + ' data-act="src-tab" data-tab="popular">Popolari</button>' +
+      (frame.supportsLatest !== false ? '<button type="button" class="pill' + (frame.tab === "latest" ? " is-on" : "") + '" data-focus data-fid="src-tab-latest"' + (frame.tab === "latest" ? " data-autofocus" : "") + ' data-act="src-tab" data-tab="latest">Ultimi</button>' : "") +
       "</div>";
-    const tools = '<div class="top-actions"><button type="button" class="text-btn" data-focus data-act="src-search">Cerca</button><button type="button" class="text-btn" data-focus data-act="src-filter">Filtri</button><button type="button" class="text-btn" data-focus data-act="open-prefs" data-id="' + esc(frame.sourceId) + '">Impostazioni</button><button type="button" class="text-btn" data-focus data-act="no-webview">Web</button></div>';
+    const tools = '<div class="top-actions"><button type="button" class="text-btn" data-focus data-fid="src-search" data-act="src-search">Cerca</button><button type="button" class="text-btn" data-focus data-act="src-filter">Filtri</button><button type="button" class="text-btn" data-focus data-act="open-prefs" data-id="' + esc(frame.sourceId) + '">Impostazioni</button><button type="button" class="text-btn" data-focus data-act="no-webview">Web</button></div>';
     let body = tabs;
     if (frame.tab === "search") body += '<p class="query-line">Ricerca: ' + esc(frame.query || "(filtri)") + "</p>";
     if (frame.loading) body += '<div class="empty"><h2>Caricamento…</h2></div>';
@@ -573,11 +590,40 @@
     return '<section class="screen detail-screen" data-screen="detail"><div class="detail-left">' + left + '</div><div class="detail-right">' + right + "</div></section>";
   }
 
+  // Player overlay as in Mangayomi: title and episode on top, seek bar with
+  // times, then the control row (episodes, play/pause, skip intro, quality, subtitles).
+  const ICON = {
+    prev: '<svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zM9.5 12l8.5 6V6z"/></svg>',
+    next: '<svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>',
+    back10: '<svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6zM11.5 12l8.5 6V6z"/></svg>',
+    fwd10: '<svg viewBox="0 0 24 24"><path d="M4 18l8.5-6L4 6zM13 6v12l8.5-6z"/></svg>',
+    play: '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
+    pause: '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6zM14 5v14h4V5z"/></svg>',
+  };
   function renderPlayer(frame) {
-    const buttons = (frame.videos || []).map((v, i) => (
-      '<button type="button" data-act="quality" data-i="' + i + '">' + esc(v.quality || ("Opzione " + (i + 1))) + "</button>"
+    const buttons = qualityRows(frame.videos);
+    const b = (id, label, icon, extra) => '<button type="button" class="pctl' + (extra || "") + '" data-pc="' + id + '" aria-label="' + esc(label) + '">' + (icon || "") + (icon && extra && extra.indexOf("icon-only") >= 0 ? "" : '<span class="pctl-label">' + esc(label) + "</span>") + "</button>";
+    return '<section class="screen player-screen" data-screen="player"><video id="player-video" playsinline></video>' +
+      '<div id="player-shade" class="player-shade is-shown">' +
+      '<div class="player-top"><div class="player-name">' + esc(frame.title) + '</div><div class="player-ep">' + esc(frame.episodeName) + "</div></div>" +
+      '<div id="player-center" class="player-center" hidden>' + ICON.play + "</div>" +
+      '<p id="player-error" class="player-error" hidden></p>' +
+      '<div class="player-bottom">' +
+      '<div class="seek-row"><span id="player-cur" class="player-t">0:00</span><div class="track"><div id="player-bar" class="track-fill"></div><div id="player-knob" class="track-knob"></div></div><span id="player-dur" class="player-t">0:00</span></div>' +
+      '<div id="player-ctl" class="ctl-row"><div class="ctl-group">' +
+      b("prev", "Episodio precedente", ICON.prev, " icon-only") + b("back10", "Indietro 10 s", ICON.back10, " icon-only") +
+      b("play", "Pausa", ICON.pause, " icon-only big") + b("fwd10", "Avanti 10 s", ICON.fwd10, " icon-only") + b("next", "Episodio successivo", ICON.next, " icon-only") +
+      '</div><div class="ctl-group">' +
+      b("skip", "+85 s  Salta intro", "", " pill-btn") + b("quality", "Qualità", "", " pill-btn") + b("subs", "Sottotitoli", "", " pill-btn") +
+      "</div></div>" +
+      '<div id="player-time" class="player-time" hidden></div><div id="player-quality" class="player-quality" hidden></div>' +
+      '</div><div id="player-qualities" class="quality-sheet" hidden><div class="sheet-handle"></div><h3 class="sheet-title">Qualità</h3><div id="player-quality-rows" class="sheet-rows">' + buttons + "</div></div></div></section>";
+  }
+  // Rows of the Mangayomi-style quality sheet: full label, check on the current one.
+  function qualityRows(videos) {
+    return (videos || []).map((v, i) => (
+      '<button type="button" class="sheet-row" data-act="quality" data-i="' + i + '"><span class="sheet-check"><svg viewBox="0 0 24 24"><path d="M9 16.2L4.8 12l-1.4 1.4L9 19 21 7l-1.4-1.4z"/></svg></span><span class="sheet-label">' + esc(v.quality || ("Opzione " + (i + 1))) + "</span></button>"
     )).join("");
-    return '<section class="screen player-screen" data-screen="player"><video id="player-video" playsinline></video><div class="player-shade"><div class="player-top"><div class="player-name">' + esc(frame.title) + '</div><div class="player-ep">' + esc(frame.episodeName) + '</div></div><p id="player-error" class="player-error" hidden></p><div class="player-bottom"><div id="player-quality" class="player-quality"></div><div class="track"><div id="player-bar" class="track-fill"></div></div><div id="player-time" class="player-time"></div><p class="player-hint">Sinistra/destra: avanti e indietro · OK: pausa · Su: qualità · Giù: episodio successivo</p></div><div id="player-qualities" class="quality-list" hidden>' + buttons + "</div></div></section>";
   }
 
   function renderPrefs(frame) {
@@ -622,12 +668,25 @@
 
   function paintDialog() {
     let el = document.getElementById("dialog");
-    if (!root.dialog) { if (el) el.remove(); return; }
+    if (!root.dialog) {
+      if (el) el.remove();
+      // Back to where the user was before the dialog, if it is still on screen.
+      const back = paintDialog.returnTo;
+      paintDialog.returnTo = null;
+      if (back && document.contains(back)) Mly.nav.focus(back);
+      return;
+    }
     if (!el) {
       el = document.createElement("div");
       el.id = "dialog";
       el.dataset.modal = "1";
       document.getElementById("app").appendChild(el);
+    }
+    if (root.dialog.confirm) {
+      // As in Mangayomi: Annulla / confirm, with the safe choice focused first.
+      el.innerHTML = '<div class="sheet confirm-sheet"><h2>' + esc(root.dialog.title) + "</h2><p>" + esc(root.dialog.body) + '</p><div class="button-row confirm-row"><button type="button" class="text-btn" data-focus data-autofocus data-act="close-dialog" data-fid="confirm-cancel">Annulla</button><button type="button" class="primary danger" data-focus data-act="confirm-ok" data-fid="confirm-ok">' + esc(root.dialog.okLabel || "OK") + "</button></div></div>";
+      Mly.nav.focus(el.querySelector("[data-autofocus]"));
+      return;
     }
     el.innerHTML = '<div class="sheet"><h2>' + esc(root.dialog.title) + "</h2><p>" + esc(root.dialog.body) + '</p><button type="button" class="primary" data-focus data-autofocus data-act="close-dialog">OK</button></div>';
     Mly.nav.focus(el.querySelector("[data-focus]"));
@@ -865,6 +924,7 @@
       url: v.url,
       originalUrl: v.originalUrl || v.url,
       quality: v.quality || "",
+      subtitles: (v.subtitles || []).filter((t) => t && t.file).map((t) => ({ file: t.file, label: t.label || "" })),
       headers: v.headers || {},
     }));
     if (!usable.length) { openDialog("Riproduzione", "Nessun flusso da riprodurre."); return; }
@@ -905,6 +965,11 @@
 
   function openDialog(title, body) {
     root.dialog = { title, body };
+    paintDialog();
+  }
+  function openConfirm(title, body, okLabel, onOk) {
+    paintDialog.returnTo = Mly.nav.current();
+    root.dialog = { title, body, confirm: true, okLabel, onOk };
     paintDialog();
   }
 
@@ -964,6 +1029,7 @@
     }
     const usable = (videos || []).filter((v) => v && v.url).map((v) => ({
       url: v.url, originalUrl: v.originalUrl || v.url, quality: v.quality || "", headers: v.headers || {},
+      subtitles: (v.subtitles || []).filter((t) => t && t.file).map((t) => ({ file: t.file, label: t.label || "" })),
     }));
     if (!usable.length) return;
     frame.episodeIndex = episodeIndex;
@@ -972,10 +1038,8 @@
     frame.startAt = startAt || 0;
     const label = document.querySelector(".player-ep");
     if (label) label.textContent = ep.name;
-    const list = document.getElementById("player-qualities");
-    if (list) {
-      list.innerHTML = usable.map((v, i) => '<button type="button" data-act="quality" data-i="' + i + '">' + esc(v.quality || ("Opzione " + (i + 1))) + "</button>").join("");
-    }
+    const list = document.getElementById("player-quality-rows");
+    if (list) list.innerHTML = qualityRows(usable);
     Mly.player.attach(frame);
   }
 
@@ -1093,7 +1157,18 @@
       return;
     }
     if (act === "install") return installEntry(el.dataset.eid, el.dataset.fid);
-    if (act === "uninstall") { Mly.ext.uninstall(el.dataset.eid); render(); return; }
+    if (act === "uninstall") {
+      const eid = el.dataset.eid;
+      const ext = Mly.memory.extensions[String(eid)];
+      const name = (ext && ext.name) || "questa estensione";
+      openConfirm("Disinstalla", "Vuoi disinstallare " + name + "? Potrai reinstallarla da Estensioni.", "Disinstalla", () => {
+        Mly.ext.uninstall(eid);
+        render();
+        const row = document.querySelector('[data-fid="ext-' + eid + '-b1"]') || document.querySelector('[data-fid="ext-' + eid + '"]') || stage().querySelector("[data-focus]");
+        if (row) Mly.nav.focus(row);
+      });
+      return;
+    }
     if (act === "reload-index") { root.extIndex = null; ensureIndex(); return; }
     if (act === "noop") return;
     if (act === "push") { stack.push({ name: el.dataset.screen }); render(); return; }
@@ -1251,6 +1326,14 @@
     if (act === "mig-title") { root.migrate.entryId = el.dataset.id; root.migrate.step = 1; render(); return; }
     if (act === "mig-source") { root.migrate.sourceId = el.dataset.id; root.migrate.step = 2; runMigrateSearch(); return; }
     if (act === "close-dialog") { root.dialog = null; paintDialog(); return; }
+    if (act === "confirm-ok") {
+      const d = root.dialog;
+      paintDialog.returnTo = null;
+      root.dialog = null;
+      paintDialog();
+      if (d && d.onOk) d.onOk();
+      return;
+    }
     if (act === "quality") { Mly.player.chooseQuality(Number(el.dataset.i)); return; }
     if (act === "osk") { onOsk(el.dataset.key); return; }
     if (act === "pref-bool") { togglePref(frame, Number(el.dataset.i)); return; }
@@ -1460,5 +1543,5 @@
     selectTab("library", false);
   }
 
-  Mly.ui = { start, selectTab, back, rememberPlayback, playEpisode, nextIndex, chronoOrder, epNumber, resumeChoice, isAdult: () => adult };
+  Mly.ui = { start, selectTab, back, rememberPlayback, playEpisode, qualityRows, nextIndex, prevIndex, chronoOrder, epNumber, resumeChoice, isAdult: () => adult };
 })();

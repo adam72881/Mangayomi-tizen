@@ -4,10 +4,15 @@
    video or GIF previews, and size hints stay at the poster slot. */
 (function () {
   const Mly = (window.Mly = window.Mly || {});
-  const POSTER_W = 168;
-  const POSTER_H = 286;
+  // Same grid as Mangayomi on TV (gridview_widget.dart): covers up to 150 dp
+  // wide, aspect 0.69, 10 dp spacing. Android TV is 960x540 dp, so 1 dp = 2 px here.
+  const MAX_W = 300;
+  const ASPECT = 0.69;
+  const POSTER_GAP = 20;
+  let POSTER_W = 240;
+  let POSTER_H = Math.round(240 / ASPECT);
   const ROW_H = 84;
-  const GAP = 16;
+  const ROW_GAP = 16;
   const OVERSCAN = 1;
 
   function thumb(url) {
@@ -49,14 +54,28 @@
     const pool = [];
     let measured = false;
 
-    function cellH() { return variant === "rows" ? ROW_H : POSTER_H; }
+    let cellW = POSTER_W;
+    let posterH = POSTER_H;
+    const GAP = variant === "rows" ? ROW_GAP : POSTER_GAP;
+    function cellH() { return variant === "rows" ? ROW_H : posterH; }
     function stride() { return cellH() + GAP; }
 
     function measure() {
       viewH = viewport.clientHeight || host.clientHeight || 0;
       const w = viewport.clientWidth || host.clientWidth || 0;
       if (variant === "rows") cols = 1;
-      else cols = Math.max(1, Math.floor((w + GAP) / (POSTER_W + GAP)));
+      else if (w > 0) {
+        // SliverGridDelegateWithMaxCrossAxisExtent: as many columns as needed so none is wider than MAX_W.
+        cols = Math.max(1, Math.ceil((w + GAP) / (MAX_W + GAP)));
+        const nw = Math.floor((w - (cols - 1) * GAP) / cols);
+        if (nw !== cellW) {
+          cellW = nw;
+          posterH = Math.round(nw / ASPECT);
+          POSTER_W = cellW; POSTER_H = posterH;
+          host.style.setProperty("--cell-w", cellW + "px");
+          host.style.setProperty("--cell-h", posterH + "px");
+        }
+      }
       const rows = items.length ? Math.ceil(items.length / cols) : 0;
       totalH = rows ? rows * cellH() + Math.max(0, rows - 1) * GAP : 0;
       if (track._h !== totalH) {
@@ -73,7 +92,8 @@
       if (variant === "rows") {
         el.innerHTML = '<span class="vrow-thumb"><img alt="" width="96" height="54" decoding="async"></span><span class="vrow-text"><span class="vrow-title"></span><span class="vrow-meta"></span></span>';
       } else {
-        el.innerHTML = '<span class="vcell-img"><img alt="" width="168" height="246" decoding="async"></span><span class="vcell-title"></span>';
+        // Mangayomi compact grid: rounded cover, title over a bottom gradient (cover_view_widget.dart, bottom_text_widget.dart).
+        el.innerHTML = '<span class="vcell-card"><span class="vcell-img"><img alt="" decoding="async"><span class="vcell-shade"></span><span class="vcell-title"></span></span></span>';
       }
       const img = el.querySelector("img");
       img.addEventListener("error", () => {
@@ -122,7 +142,7 @@
           if (!el) break;
           if (i >= items.length) { el.hidden = true; continue; }
           el.hidden = false;
-          const x = variant === "rows" ? 0 : c * (POSTER_W + GAP);
+          const x = variant === "rows" ? 0 : c * (cellW + GAP);
           const y = r * rowH;
           const transform = "translate3d(" + x + "px," + y + "px,0)";
           if (el.style.transform !== transform) el.style.transform = transform;
@@ -248,5 +268,5 @@
     return api;
   }
 
-  Mly.grid = { mount, thumb, POSTER_W, POSTER_H };
+  Mly.grid = { mount, thumb, get POSTER_W() { return POSTER_W; }, get POSTER_H() { return POSTER_H; } };
 })();

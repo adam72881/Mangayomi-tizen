@@ -40,3 +40,24 @@
 
 - js/nav.js: "Sinistra" dal contenuto verso la barra laterale ora va sulla scheda già selezionata, come in Mangayomi. Prima andava sul pulsante della barra allineato in altezza e cambiava scheda senza volerlo (dal centro della Libreria si finiva su Cronologia).
 - js/ui.js: dopo l'attivazione o disattivazione della modalità nascosta (0×5) il focus resta sulla barra laterale, se era lì. Prima saltava nel contenuto.
+
+# v0.3.5 (14/11/2026), non ancora installata sulla TV
+
+- js/ui.js e css/app.css: prima di disinstallare un'estensione compare una conferma, come in Mangayomi: "Disinstalla – Vuoi disinstallare <nome>? Potrai reinstallarla da Estensioni.", con i pulsanti "Annulla" e "Disinstalla".
+  - Il focus parte su "Annulla"; con Sinistra/Destra si passa da un pulsante all'altro.
+  - Indietro e "Annulla" chiudono senza toccare nulla e il focus torna sul pulsante di partenza. Dopo la disinstallazione il focus torna sulla riga dell'estensione.
+  - Libreria, cronologia e impostazioni della sorgente non vengono cancellate.
+- icon.png: l'icona provvisoria è stata sostituita con l'icona ufficiale di Aniyomi, su scelta di Adam. È il disegno vettoriale del launcher Android (`app/src/main/res/drawable/ic_launcher_foreground.xml` di github.com/aniyomiorg/aniyomi), convertito in SVG (`icon-source.svg`) e poi in un PNG 512x512 con sfondo trasparente. Licenza Apache-2.0: vedi `THIRD_PARTY_NOTICES.md`.
+- Estensioni (js/ui.js, js/nav.js): ogni riga ha i suoi pulsanti veri (Installa / Aggiorna / Disinstalla), raggiungibili con le frecce come in Mangayomi. Destra va sul pulsante, Sinistra torna alla riga (e poi alla barra laterale), Su/Giù cambiano riga restando nella stessa colonna, Su da "Aggiorna" (in fondo) torna all'ultima riga. Dopo Installa/Disinstalla il focus resta sul pulsante della riga e non salta più in cima.
+- Entrando in una sorgente, durante il caricamento il focus è sulla scheda Popolari/Ultimi; a caricamento finito va sulla prima copertina. Prima finiva su "Cerca".
+- Copertine (js/grid.js, css/app.css) come la griglia compatta di Mangayomi su TV: larghezza massima 150 dp, proporzione 0,69, spazio di 10 dp, angoli arrotondati da 6 dp, anello di focus da 3 dp fuori dal ritaglio, la copertina col focus si ingrandisce di 1,06, titolo bianco su due righe sopra una sfumatura scura. Il titolo ora si vede ovunque (Libreria, Sfoglia, ricerca). È stato corretto anche il riquadro sfalsato: lo span della copertina era in linea e l'immagine usciva dal bordo agli angoli.
+- `[hidden]` ora nasconde davvero anche gli elementi con display:flex. La lista delle qualità aveva display:flex e quindi compariva da sola all'avvio (per esempio "Originale - 480p / 240p" su Stripchat).
+- Lettore (js/player.js, js/ui.js, css/app.css) in stile Mangayomi:
+  - In alto titolo ed episodio; in basso la barra di avanzamento con i tempi e la fila dei comandi: episodio precedente, -10 s, Play/Pausa, +10 s, episodio successivo, "+85 s Salta intro" (la durata predefinita di Mangayomi), Qualità, Sottotitoli.
+  - Il video parte da solo alla qualità più alta. La qualità si cambia solo dal pulsante Qualità, che apre un pannello in basso con testo grande e la spunta sulla qualità attuale.
+  - Il cartellino "AnimeWorld" a destra non c'è più: il pulsante mostra solo la risoluzione.
+  - I comandi spariscono dopo 3 s senza tasti durante la riproduzione e ricompaiono con qualsiasi tasto. Restano visibili in pausa o con un menu aperto.
+  - Tasti come prima: Sinistra/Destra -10/+10 s, OK pausa, Giù episodio successivo, Indietro chiude il lettore. Su ora entra nella fila dei comandi (su Qualità, oppure su Salta intro se c'è una sola qualità). Lì Sinistra/Destra si spostano, OK preme, Su/Giù/Indietro escono dalla fila. Funzionano anche i tasti multimediali (Play/Pausa, avanti/indietro, traccia successiva/precedente).
+  - I sottotitoli forniti dall'estensione (file WebVTT) si attivano a giro dal pulsante Sottotitoli.
+- HypnoTube: "Popolari" e "Ultimi" uguali. Non è colpa dell'app, che chiama getPopular e getLatestUpdates separatamente. L'estensione 1.4.2, con "Popular a sorpresa" attivo (lo è di default), può pescare proprio l'ordine "Recenti", oppure "Casuale" a partire dalla pagina 1 dei recenti. La correzione è nella patch separata per il repository delle estensioni (HypnoTube 1.4.3), non ancora unita.
+
