@@ -1,0 +1,9 @@
+*.p12
+*.wgt
+.buildResult/
+.sign/
+profiles.xml
+*.pem
+*.key
+.env
+node_modules/
