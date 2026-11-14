@@ -132,3 +132,7 @@ Preparazione per proporre l'app al progetto Mangayomi.
   - **Da verificare sulla TV.** In Chromium sul PC il cookie di un altro sito non viene rimandato (SameSite=Lax di default; `navtest` lo riporta come «INFO»). Un'app Tizen installata può comportarsi diversamente.
   - Le estensioni hanno bisogno di PMVHaven 1.6.3 e HypnoTube 1.4.5 (adam72881/mangayomi-anime-extensions PR #9), che riconoscono il login anche quando il cookie non si legge.
 - Test headless: 132 PASS, 0 FAIL.
+- **Filtri** (segnalato da Adam):
+  - Scegliendo un'opzione (es. «Ultime aggiunte») il pannello si ridisegna ma il focus resta su quell'opzione, alla stessa altezza; prima saltava su «Cerca».
+  - Riaprendo Filtri si ritrovano le scelte già applicate, non quelle predefinite. «Azzera» le riporta come all'inizio.
+  - Due test nuovi in `navtest.mjs`. Totale: 134 PASS, 0 FAIL.

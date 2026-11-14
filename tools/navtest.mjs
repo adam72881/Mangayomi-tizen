@@ -40,6 +40,14 @@ await key(40); await sleep(150);
 ok("Giù dalla scheda torna sulla griglia", /^grid-source/.test(await ev(cur)), await ev(cur));
 await ev(`Mly.nav.focus(document.querySelector('[data-fid="src-filter"]')); 1`); await key(13); await sleep(400);
 ok("Filtri aperto", await ev("!!document.getElementById('filters')"));
+const fsel = await ev("(()=>{const b=[...document.querySelectorAll('#filters [data-act=fopt]')].find(x=>x.dataset.j==='1'); if(!b) return null; Mly.nav.focus(b); return {fi:b.dataset.fi, j:b.dataset.j, testo:b.textContent.trim()}})()");
+if (fsel) {
+  await key(13); await sleep(300);
+  ok("Filtri: dopo aver scelto un'opzione il focus resta su quell'opzione, non salta su Cerca", await ev(`(()=>{const c=Mly.nav.current(); return !!c && c.dataset.act==='fopt' && c.dataset.fi==='${fsel.fi}' && c.dataset.j==='1' && c.classList.contains('is-on')})()`), await ev(cur));
+  await ev(`Mly.nav.focus(document.querySelector('#filters [data-act=filter-apply]')); 1`); await key(13); await sleep(2500);
+  await ev(`Mly.nav.focus(document.querySelector('[data-fid="src-filter"]')); 1`); await key(13); await sleep(400);
+  ok("Filtri: riaprendo il pannello l'opzione scelta è ancora selezionata", await ev(`!!document.querySelector('#filters [data-act=fopt][data-fi="${fsel.fi}"][data-j="1"].is-on')`), fsel);
+} else ok("Filtri: la sorgente di prova ha un filtro a scelta", false);
 await key(10009); await sleep(300);
 ok("#6 Indietro dai Filtri: focus di nuovo su Filtri", /^src-filter\|Filtri/.test(await ev(cur)), await ev(cur));
 await ev(`Mly.nav.focus(document.querySelector('[data-act="no-webview"]')); 1`); await key(13); await sleep(300);

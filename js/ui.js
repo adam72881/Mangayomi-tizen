@@ -757,8 +757,16 @@
       document.getElementById("app").appendChild(el);
     }
     const blocks = (frame.filterDraft || []).map((f, i) => filterBlock(f, i)).join("");
+    // Dopo aver scelto un'opzione il pannello si ridisegna: si resta sulla stessa
+    // opzione e alla stessa altezza, invece di saltare su «Cerca».
+    const oldScroll = el.querySelector(".filter-scroll");
+    const scrollTop = oldScroll ? oldScroll.scrollTop : 0;
+    const keep = root.filterKeep;
+    root.filterKeep = null;
     el.innerHTML = '<div class="sheet filter-sheet"><h2>Filtri</h2><div class="filter-scroll">' + (blocks || "<p>Questa sorgente non ha filtri.</p>") + '</div><div class="button-row"><button type="button" class="text-btn" data-focus data-act="filter-reset">Azzera</button><button type="button" class="primary" data-focus data-autofocus data-act="filter-apply">Cerca</button></div></div>';
-    Mly.nav.focus(el.querySelector("[data-autofocus]"));
+    const scroller = el.querySelector(".filter-scroll");
+    if (scroller && scrollTop) scroller.scrollTop = scrollTop;
+    Mly.nav.focus((keep && el.querySelector(keep)) || el.querySelector("[data-autofocus]"));
   }
   function filterBlock(f, i) {
     const type = f.type_name || "";
@@ -1302,8 +1310,12 @@
       return;
     }
     if (act === "src-filter") {
-      try { frame.filterDraft = Mly.ext.getFilters(frame.sourceId); }
-      catch (e) { frame.filterDraft = []; }
+      // Riaprendo i Filtri si ritrovano le scelte già applicate, non quelle predefinite.
+      if (frame.filters && frame.filters.length) frame.filterDraft = JSON.parse(JSON.stringify(frame.filters));
+      else {
+        try { frame.filterDraft = Mly.ext.getFilters(frame.sourceId); }
+        catch (e) { frame.filterDraft = []; }
+      }
       frame.showFilters = true;
       root.filtersFor = frame;
       paintFilters();
@@ -1324,6 +1336,9 @@
       catch (e) { frame.filterDraft = []; }
       paintFilters();
       return;
+    }
+    if (/^(fopt|ftext|fsort|fsort-dir|fcheck|ftri|fgroup)$/.test(act)) {
+      root.filterKeep = '#filters [data-act="' + act + '"][data-fi="' + el.dataset.fi + '"]' + (el.dataset.j != null ? '[data-j="' + el.dataset.j + '"]' : "");
     }
     if (act === "fopt") {
       const f = frame.filterDraft[Number(el.dataset.fi)];
