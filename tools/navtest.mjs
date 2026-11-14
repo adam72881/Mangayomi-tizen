@@ -77,6 +77,17 @@ const det = await ev("JSON.stringify({az:[...document.querySelectorAll('.dact')]
 const d = JSON.parse(det);
 ok("scheda: solo azioni che funzionano (niente Tracciamento/Consigliati/Ordine), Inizia col focus", !d.az.some(a=>/track|rec|order/.test(a)) && d.az.includes("toggle-lib") && d.az.includes("no-webview") && d.play === "detail-play", d);
 ok("scheda: l'elenco degli episodi parte dall'alto (l'ultimo uscito), non spostato sull'episodio suggerito", await ev("(()=>{const h=document.querySelector('[data-mount=episodes]'); const tr=h.querySelector('.vgrid-track'); return h._grid.index===0 && (!tr.style.transform || /translate3d\\(0(px)?, ?0(px)?/.test(tr.style.transform))})()"), await ev("(()=>{const h=document.querySelector('[data-mount=episodes]'); return {i:h._grid.index, t:h.querySelector('.vgrid-track').style.transform, primo:(h.querySelector('.vrow:not([hidden]) .vrow-title')||{}).textContent}})()"));
+const primoPrima = await ev("(document.querySelector('[data-mount=episodes] .vrow:not([hidden]) .vrow-title')||{}).textContent");
+await ev(`Mly.nav.focus(document.querySelector('[data-fid="eps-sort"]')); 1`); await key(13); await sleep(500);
+const sortInfo = await ev("JSON.stringify({btn:document.querySelector('[data-fid=eps-sort]').textContent.trim(), primo:(document.querySelector('[data-mount=episodes] .vrow:not([hidden]) .vrow-title')||{}).textContent, focus:(Mly.nav.current()||{}).dataset.fid})");
+const so = JSON.parse(sortInfo);
+ok("Ordina episodi: «Dal primo» mette in cima l'Ep. 1 e il focus resta sul pulsante", /Dal primo/.test(so.btn) && /\b1$/.test(so.primo) && so.primo !== primoPrima && so.focus === "eps-sort", { prima: primoPrima, dopo: so });
+await key(40); await sleep(200);
+ok("Ordina episodi: Giù dal pulsante va sugli episodi", (await ev("(Mly.nav.current()||{}).dataset.fid")) === "detail-eps");
+const scelto = await ev("(()=>{const h=document.querySelector('[data-mount=episodes]'); h._grid.jump(2); return document.querySelector('[data-mount=episodes] .vrow.is-focused .vrow-title').textContent})()");
+ok("Ordina episodi: la scelta resta per quella serie", await ev(`(()=>{const m=Mly.memory.settings.epSort||{}; return Object.values(m).includes('oldest')})()`));
+await ev(`Mly.nav.focus(document.querySelector('[data-fid="eps-sort"]')); 1`); await key(13); await sleep(500);
+ok("Ordina episodi: premendo di nuovo torna «Dal più recente»", /Dal più recente/.test(await ev("document.querySelector('[data-fid=eps-sort]').textContent")) && (await ev("(document.querySelector('[data-mount=episodes] .vrow:not([hidden]) .vrow-title')||{}).textContent")) === primoPrima);
 ok("scheda: episodi grandi (128 px) e tag da premere", d.h === 128 && d.tag > 0, d);
 const tagName = await ev("(()=>{const t=document.querySelector('.tag'); Mly.nav.focus(t); return t.dataset.tag})()"); await key(13);
 await waitFor("document.querySelector('.query-line') && !document.querySelector('.screen [data-mount=episodes]')", 30000); await sleep(800);

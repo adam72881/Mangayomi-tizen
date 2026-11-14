@@ -266,7 +266,7 @@
           // l'episodio da guardare è già sul pulsante «Inizia/Continua».
           focusIndex: frame.epFocus != null ? frame.epFocus : 0,
           onIndex: (i) => { frame.epFocus = i; },
-          onActivate: (item, i) => playFromDetail(frame, i),
+          onActivate: (item) => playFromDetail(frame, item.index),
         });
       } else if (kind === "history") {
         Mly.grid.mount(host, {
@@ -343,12 +343,20 @@
     return d.toLocaleDateString("it-IT", { month: "short", day: "numeric" });
   }
 
+  function epSortOf(frame) {
+    const m = Mly.memory.settings.epSort || {};
+    return m[seriesKey(frame.sourceId, frame.link)] === "oldest" ? "oldest" : "newest";
+  }
   function episodeCards(frame) {
     const manga = frame.manga || {};
     const chapters = chaptersOf(manga);
     const prog = progressOf(frame.sourceId, frame.link);
     const base = (sourceOf(frame.sourceId) || {}).baseUrl || "";
-    return chapters.map((ch, i) => {
+    // Ordine scelto con il pulsante sopra l'elenco: dal più recente (predefinito,
+    // come Mangayomi) o dal primo. «index» resta la posizione vera nella lista.
+    const chrono = chronoOrder(chapters);
+    const order = epSortOf(frame) === "oldest" ? chrono : chrono.slice().reverse();
+    return order.map((i) => { const ch = chapters[i];
       const watched = isDone(prog, ch.url);
       const at = watched ? 0 : startAtFor(prog, ch.url);
       const resume = at > 0;
@@ -700,7 +708,12 @@
     if (frame.loading && !chapters.length) right = '<div class="empty"><h2>Caricamento…</h2></div>';
     else if (frame.error && !chapters.length) right = '<div class="empty"><p>' + esc(frame.error) + '</p><button type="button" class="text-btn" data-focus data-act="detail-refresh">Riprova</button></div>';
     else if (!chapters.length) right = '<div class="empty"><h2>Nessun episodio</h2></div>';
-    else right = '<div class="eps-head">Episodi' + (choice.watchedCount ? " · " + choice.watchedCount + " visti" : "") + '</div><div class="vgrid-host" data-mount="episodes" data-focus data-grid="1" tabindex="0"></div>';
+    else {
+      const oldest = epSortOf(frame) === "oldest";
+      right = '<div class="eps-head"><span>Episodi' + (choice.watchedCount ? " · " + choice.watchedCount + " visti" : "") + '</span>' +
+        '<button type="button" class="text-btn eps-sort" data-focus data-fid="eps-sort" data-down="detail-eps" data-act="eps-sort">' + (oldest ? "↑ Dal primo" : "↓ Dal più recente") + "</button></div>" +
+        '<div class="vgrid-host" data-mount="episodes" data-focus data-fid="detail-eps" data-up="eps-sort" data-grid="1" tabindex="0"></div>';
+    }
     return '<section class="screen detail-screen" data-screen="detail"><div class="detail-left">' + left + '</div><div class="detail-right">' + right + "</div></section>";
   }
 
@@ -1549,6 +1562,18 @@
     if (act === "toggle-lib") { toggleLibrary(frame); return; }
     if (act === "detail-refresh") { frame.loading = true; render(); refreshDetail(frame); return; }
     if (act === "detail-cats") { openCategoryAssign(frame); return; }
+    if (act === "eps-sort") {
+      const key = seriesKey(frame.sourceId, frame.link);
+      const m = Mly.memory.settings.epSort || {};
+      if (epSortOf(frame) === "oldest") delete m[key]; else m[key] = "oldest";
+      Mly.memory.settings.epSort = m;
+      Mly.db.saveSettings();
+      frame.epFocus = 0;
+      render();
+      const b = document.querySelector('[data-fid="eps-sort"]');
+      if (b) Mly.nav.focus(b);
+      return;
+    }
     if (act === "detail-tag") { openSourceSearch(frame.sourceId, el.dataset.tag || ""); return; }
     if (act === "detail-track") { openDialog("Tracciamento", "Il tracciamento richiede un account collegato da browser. Questa app per TV non ha WebView, quindi i tracker non si possono collegare qui."); return; }
     if (act === "detail-rec" || act === "detail-order") { openDialog("Non disponibile sulla TV", "Consigliati e ordine di visione usano tracker online che richiedono un accesso da browser, che questa app per TV non può aprire."); return; }

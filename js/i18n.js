@@ -58,7 +58,7 @@
     "Nessun repository. Aggiungine uno per vedere le estensioni.": "No repositories. Add one to see extensions.",
     "Indirizzo di un anime_index.json (repository di estensioni Mangayomi).": "URL of an anime_index.json (Mangayomi extension repository).",
     "Italiano": "Italiano", "English": "English",
-    "Salta sigla": "Skip intro", "Salta finale": "Skip ending", "Statistiche": "Statistics", "Copertine per riga": "Covers per row", "Automatica (come Mangayomi)": "Automatic (like Mangayomi)", "✓ Automatica (come Mangayomi)": "✓ Automatic (like Mangayomi)", "Titoli in libreria": "Titles in library", "Serie iniziate": "Series started", "Episodi visti": "Episodes watched",
+    "↓ Dal più recente": "↓ Newest first", "↑ Dal primo": "↑ Oldest first", "Salta sigla": "Skip intro", "Salta finale": "Skip ending", "Statistiche": "Statistics", "Copertine per riga": "Covers per row", "Automatica (come Mangayomi)": "Automatic (like Mangayomi)", "✓ Automatica (come Mangayomi)": "✓ Automatic (like Mangayomi)", "Titoli in libreria": "Titles in library", "Serie iniziate": "Series started", "Episodi visti": "Episodes watched",
     "Tempo guardato": "Time watched", "Sorgenti installate": "Installed sources", "Ultima visione": "Last watched", "Sorgenti più guardate": "Most watched sources",
     "Guarda qualche episodio per vedere qui le sorgenti più usate.": "Watch a few episodes to see your most used sources here.", "Episodi": "Episodes", "Aggiungi alla libreria ": "Add to library",
     "Accessi dei siti (sperimentale)": "Site logins (experimental)",

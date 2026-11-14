@@ -173,3 +173,8 @@ Preparazione per proporre l'app al progetto Mangayomi.
   - Durante la sigla compare in basso a destra «Salta sigla · OK» (o «Salta finale»). OK salta alla fine della sigla senza mettere in pausa, poi il pulsante sparisce. Nessun salto automatico.
   - Le sorgenti per adulti sono escluse: i loro titoli non vengono mandati ad AniList.
   - Test: ricerca vera (One Piece (ITA) → MyAnimeList 21 → sigla dell'ep. 1000 da 0:14 a 2:04), comparsa del pulsante, salto con OK, scomparsa. Totale: 154 PASS, 0 FAIL.
+- **Ordina episodi** (chiesto da Adam):
+  - Accanto al titolo «Episodi» c'è un pulsante «↓ Dal più recente» / «↑ Dal primo». Lo stesso pulsante passa da un ordine all'altro, e la scelta resta per quella serie (`settings.epSort`).
+  - L'ordine vero viene ricavato dai numeri o dalle date degli episodi, quindi funziona anche con sorgenti che li elencano al contrario. Premendo un episodio parte sempre quello giusto (`item.index`).
+  - Col D-pad: Su dalla lista va sul pulsante, Giù dal pulsante torna alla lista.
+  - Quattro test nuovi. Totale: 158 PASS, 0 FAIL.
