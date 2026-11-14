@@ -1,4 +1,6 @@
 # Mangayomi Lite TV — stato e piano (14/11/2026)
+
+> Diario storico dei primi passi. Le modifiche di ogni versione e lo stato attuale sono in `NOTE_MODIFICHE.md`.
 Sorgenti app: questo repository.
 Repo Mangayomi ufficiale clonato: /workspace/mly/mangayomi-src (API JS in lib/eval/javascript/*)
 Estensioni di Adam scaricate: /workspace/mly/ext

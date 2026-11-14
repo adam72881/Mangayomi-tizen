@@ -33,7 +33,7 @@ const openAw = async () => {
 const gridGeo = "(()=>{const h=document.getElementById('grid-source'); const cs=[...h.querySelectorAll('.vcell:not([hidden])')]; const c=cs[1]||cs[0]; const r=c.getBoundingClientRect(); const ys={}; cs.forEach(x=>{const y=Math.round(x.getBoundingClientRect().top); ys[y]=(ys[y]||0)+1}); const xs=cs.slice(0,3).map(x=>Math.round(x.getBoundingClientRect().left)); return {var:h.style.getPropertyValue('--cell-w'), w:Math.round(r.width), poster:Mly.grid.POSTER_W, cols:Object.values(ys)[0], passo:xs[2]-xs[1]}})()";
 await openAw();
 const g1 = await ev(gridGeo);
-ok("prima sorgente: copertine compatte (7-10 per riga, spazio piccolo)", g1.cols >= 7 && g1.cols <= 10 && g1.passo - g1.w <= 16 && g1.var === g1.w + "px", g1);
+ok("prima sorgente: griglia come Mangayomi (5-7 per riga, 20 px tra le celle)", g1.cols >= 5 && g1.cols <= 7 && g1.passo - g1.w === 20 && g1.var === g1.w + "px", g1);
 await key(38); await sleep(150);
 ok("#5 Su dalla prima riga va sulla scheda Popolari, non su Cerca", /^src-tab-popular\|/.test(await ev(cur)), await ev(cur));
 await key(40); await sleep(150);

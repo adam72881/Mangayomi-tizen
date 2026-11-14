@@ -617,7 +617,7 @@
       b("prev", "Episodio precedente", ICON.prev, " icon-only") + b("back10", "Indietro 10 s", ICON.back10, " icon-only") +
       b("play", "Pausa", ICON.pause, " icon-only big") + b("fwd10", "Avanti 10 s", ICON.fwd10, " icon-only") + b("next", "Episodio successivo", ICON.next, " icon-only") +
       '</div><div class="ctl-group">' +
-      b("skip", "+85 s  Salta intro", "", " pill-btn") + b("quality", "Video", "", " pill-btn") +
+      b("skip", "+85 s  Salta intro", "", " pill-btn") + b("quality", "Video", "", " pill-btn") + b("subs", "Sottotitoli", "", " pill-btn") +
       "</div></div>" +
       '<div id="player-time" class="player-time" hidden></div><div id="player-quality" class="player-quality" hidden></div>' +
       '</div><div id="player-qualities" class="quality-sheet" hidden><div class="sheet-handle"></div><h3 class="sheet-title">Qualità</h3><div id="player-quality-rows" class="sheet-rows">' + buttons + "</div></div></div></section>";

@@ -4,14 +4,17 @@
    video or GIF previews, and size hints stay at the poster slot. */
 (function () {
   const Mly = (window.Mly = window.Mly || {});
-  // Compact TV grid: about the same density as v0.3.4 (many covers, a small gap),
-  // with Mangayomi's 0.69 cover ratio. A wide 150 dp cell left only six covers
-  // and large holes once the next screen forgot to copy the size.
-  const MAX_W = 180;
+  // Same grid as Mangayomi on TV (lib/modules/widgets/gridview_widget.dart):
+  // SliverGridDelegateWithMaxCrossAxisExtent with maxCrossAxisExtent 150 dp,
+  // 10 dp spacing, childAspectRatio 0.69; each cover has 4 dp padding
+  // (cover_view_widget.dart). Android TV is 960x540 dp, so 1 dp = 2 px here.
+  // The big holes seen on the TV in v0.3.5 came from issue #4 (cells not sized
+  // on the second grid), not from these values.
+  const MAX_W = 300;
   const ASPECT = 0.69;
-  const POSTER_GAP = 12;
-  let POSTER_W = 168;
-  let POSTER_H = Math.round(168 / ASPECT);
+  const POSTER_GAP = 20;
+  let POSTER_W = 260;
+  let POSTER_H = Math.round(260 / ASPECT);
   const ROW_H = 84;
   const ROW_GAP = 16;
   const OVERSCAN = 1;

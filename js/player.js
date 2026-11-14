@@ -166,7 +166,7 @@
   function controls() {
     return [...document.querySelectorAll("#player-ctl [data-pc]")];
   }
-  function usable(btn) { return btn && !btn.disabled; }
+  function usable(btn) { return btn && !btn.disabled && !btn.hidden; }
 
   function subtitleList() {
     const v = frame && frame.videos[frame.videoIndex];
@@ -227,10 +227,12 @@
         if (span && span.textContent !== label) span.textContent = label;
         btn.setAttribute("aria-label", "Qualità " + label);
         btn.disabled = !frame || frame.videos.length < 2;
-      } else if (id === "subs") {
+      }
+      else if (id === "subs") {
+        // Solo se la sorgente fornisce davvero dei sottotitoli: altrimenti il pulsante non c'è.
         const subs = subtitleList();
-        btn.disabled = !subs.length;
-        const label = !subs.length ? "Sottotitoli: nessuno" : subIndex < 0 ? "Sottotitoli: no" : "Sottotitoli: " + (subs[subIndex].label || ("Traccia " + (subIndex + 1)));
+        btn.hidden = !subs.length;
+        const label = subIndex < 0 ? "Sottotitoli: no" : "Sottotitoli: " + ((subs[subIndex] && subs[subIndex].label) || ("Traccia " + (subIndex + 1)));
         const span = btn.querySelector(".pctl-label");
         if (span && span.textContent !== label) span.textContent = label;
       }

@@ -39,11 +39,11 @@ img { display: block; }
 /* Covers: Mangayomi compact grid (dp x 2). 4 dp padding, 6 dp radius,
    3 dp focus ring outside the clip with radius 6+3, focused cover lifts 1.06,
    title 14 dp w600 white, 2 lines, on a 70 dp gradient to #00000099. */
-.vcell { width: var(--cell-w, 168px); height: var(--cell-h, 243px); padding: 0; overflow: visible; background: none; border: 0; }
-.vcell-card { display: block; width: 100%; height: 100%; padding: 0; border: 3px solid transparent; border-radius: 12px; box-sizing: border-box; }
+.vcell { width: var(--cell-w, 260px); height: var(--cell-h, 377px); padding: 8px; overflow: visible; background: none; border: 0; }
+.vcell-card { display: block; width: 100%; height: 100%; padding: 0; border: 6px solid transparent; border-radius: 18px; box-sizing: border-box; }
 .vcell.is-focused .vcell-card { border-color: #d0bcff; transform: scale(1.06); }
 .vcell.is-focused { z-index: 2; }
-.vcell-img { position: relative; display: block; width: 100%; height: 100%; border-radius: 9px; overflow: hidden; background: #2b2930; }
+.vcell-img { position: relative; display: block; width: 100%; height: 100%; border-radius: 12px; overflow: hidden; background: #2b2930; }
 .vcell-img img { position: absolute; top: 0; left: 0; display: block; width: 100%; height: 100%; object-fit: cover; border: 0; }
 .vcell-img.broken img, .vcell-img img:not([src]) { visibility: hidden; }
 .vcell-shade { position: absolute; left: 0; right: 0; bottom: 0; height: 140px; background: linear-gradient(to bottom, rgba(0,0,0,0), rgba(0,0,0,0.6)); pointer-events: none; }

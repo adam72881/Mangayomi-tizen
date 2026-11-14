@@ -1,3 +1,22 @@
+# Mangayomi per TV Samsung: modifiche e stato
+
+Questo è l'unico file con le modifiche di ogni versione e lo stato attuale. `docs/STATO_E_PIANO.md` resta come diario storico dei primi passi (ambiente, firma, installazione).
+
+## Stato attuale (v0.3.6, ramo `cursor/v035-tizen-5ab3`, PR #1)
+
+- `main` è la v0.3.4. La v0.3.6 è passata nei test headless ma **non è ancora stata installata né provata sulla TV**: il pacchetto va rifirmato da questa versione.
+- **Test:** `tools/run-tests.sh` dalla radice del repository. Servono node 20+, Chrome o Chromium (variabile `CHROME`) e Internet: i test usano il repository delle estensioni e i siti veri.
+  - Il server locale è `tools/servefull.mjs`, sulla porta 8770 con la stessa CSP di config.xml. Chrome headless gira con CDP sulla porta 9444.
+  - I test girano in quest'ordine: `v032test`, `uninstalltest`, `playertest`, `navtest`.
+  - `javtest` e `hypnotest` sono facoltativi: da un server quei siti rispondono con un controllo del browser o con l'age-gate.
+- **Limiti noti:**
+  - Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell'età non vengono aggirati.
+  - Sottotitoli: solo tracce WebVTT fornite dall'estensione in `video.subtitles`. SRT e sottotitoli HLS non sono gestiti.
+  - Stripchat: il segnaposto da 12 s («Find the real thing on STRIPCHAT.COM», stanza privata o offline) non parte e compare «Stanza privata o offline». L'HD protetto dal sito non si aggira.
+  - I problemi delle singole estensioni vanno nel repository adam72881/mangayomi-anime-extensions (HypnoTube: `docs/HYPNOTUBE_POPOLARI.md`).
+
+---
+
 # Modifiche fatte prima dell'installazione sulla TV (14/11/2026)
 
 - config.xml:
@@ -76,3 +95,11 @@ Le correzioni principali sono nei commit 990aa14, 9db8e78 e 1ff1ddc di questo ra
 - **#8** Giù durante il video apre i comandi con il focus su «Salta intro», nella fila dei pulsanti in basso (su Qualità se Salta intro non c'è). Prima andava su Play. Su continua a non portare su Qualità.
 - **#9** La rotella compare anche durante il buffering, non solo prima che il video parta, e sparisce appena ci sono fotogrammi (`waiting` / `playing` / `canplay`). All'apertura del lettore non compare più «Non c'è un episodio successivo» (correzione di 1ff1ddc, coperta dal test).
 - Test headless dopo queste modifiche: 121 PASS, 0 FAIL.
+- **Sottotitoli**: il pulsante c'è di nuovo, ma compare **solo quando la sorgente fornisce delle tracce**. Altrimenti è nascosto e il D-pad lo salta.
+- **Griglia come Mangayomi ufficiale** (`gridview_widget.dart` e `cover_view_widget.dart`, con 1 dp = 2 px):
+  - copertine larghe al massimo 150 dp (300 px), 10 dp (20 px) tra una cella e l'altra, 4 dp (8 px) di margine per copertina, proporzione 0,69;
+  - angoli di 6 dp, anello del focus di 3 dp, titolo di 14 dp;
+  - su questa TV sono 6 copertine per riga da circa 289 px.
+  I grandi vuoti visti sulla TV nella v0.3.5 erano dovuti a #4 (celle non dimensionate dalla seconda griglia in poi), ora corretto.
+- **Documentazione**: `docs/V035_STATO.md` è stato tolto. Ripeteva questo file: le parti ancora utili (test e limiti) sono in «Stato attuale» qui in cima.
+- Test headless: 123 PASS, 0 FAIL.
