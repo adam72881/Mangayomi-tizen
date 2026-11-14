@@ -1,0 +1,62 @@
+// Test v0.3.2 in Chromium headless via CDP. Uso: node v032test.mjs <porta>
+const [port = "9444"] = process.argv.slice(2);
+const list = await (await fetch(`http://127.0.0.1:${port}/json`)).json();
+const target = list.find(t => t.type === "page");
+const ws = new WebSocket(target.webSocketDebuggerUrl);
+let id = 0; const pending = {}; const logs = [];
+ws.onmessage = e => { const m = JSON.parse(e.data);
+  if (m.id && pending[m.id]) { pending[m.id](m); delete pending[m.id]; return; }
+  if (m.method === "Runtime.exceptionThrown") logs.push("[exception] " + (m.params.exceptionDetails.exception?.description || m.params.exceptionDetails.text).slice(0, 300));
+  if (m.method === "Runtime.consoleAPICalled" && /error/.test(m.params.type)) logs.push("[console.error] " + m.params.args.map(a => a.value ?? a.description).join(" ").slice(0, 300)); };
+await new Promise(r => ws.onopen = r);
+const send = (method, params = {}) => new Promise(r => { const i = ++id; pending[i] = r; ws.send(JSON.stringify({ id: i, method, params })); });
+const ev = async x => { const r = await send("Runtime.evaluate", { expression: x, returnByValue: true, awaitPromise: true }); return r.result?.exceptionDetails ? "ERR " + (r.result.exceptionDetails.exception?.description || r.result.exceptionDetails.text).slice(0, 300) : r.result?.result?.value; };
+const sleep = ms => new Promise(r => setTimeout(r, ms));
+const KEYS = { 37: "ArrowLeft", 38: "ArrowUp", 39: "ArrowRight", 40: "ArrowDown", 13: "Enter", 10009: "XF86Back", 48: "0" };
+const key = async code => { for (const type of ["rawKeyDown", "keyUp"]) await send("Input.dispatchKeyEvent", { type, windowsVirtualKeyCode: code, nativeVirtualKeyCode: code, key: KEYS[code], code: code === 48 ? "Digit0" : KEYS[code] }); };
+const waitFor = async (x, ms = 45000) => { const t = Date.now(); while (Date.now() - t < ms) { const v = await ev(x); if (v && !String(v).startsWith("ERR")) return true; await sleep(400); } return false; };
+const click = sel => ev(`(()=>{const e=document.querySelector(${JSON.stringify(sel)}); if(!e) return 'manca'; e.click(); return 'ok'})()`);
+const results = []; const ok = (name, cond, info) => { results.push((cond ? "PASS " : "FAIL ") + name + (info !== undefined ? "  → " + JSON.stringify(info) : "")); };
+// JAV Guru + controlli tasti Tizen. Uso: node javtest.mjs <porta>
+await send("Runtime.enable");
+await waitFor("window.Mly && Mly.ui && document.querySelector('.rail-btn')");
+ok("tvinputdevice: tasto 0", true, await ev("(()=>{try{const k=tizen.tvinputdevice.getKey('0'); const sup=tizen.tvinputdevice.getSupportedKeys().map(k=>k.name); return {getKey:k, supportati_numeri:sup.filter(n=>/^[0-9]$/.test(n))}}catch(e){return 'ERR '+e.message}})()"));
+if (!(await ev("Mly.ui.isAdult()"))) { await ev("Mly.ui.selectTab('library', true); 1"); for (let i = 0; i < 5; i++) { await key(48); await sleep(150); } await sleep(300); }
+ok("modalità adulti attiva per il test", await ev("Mly.ui.isAdult()") === true);
+await ev("Mly.ui.selectTab('browse', true); 1"); await sleep(300);
+await click('[data-act="browse"][data-tab="extensions"]');
+await waitFor("document.querySelectorAll('#stage [data-eid]').length>0", 30000);
+const row = await ev("(()=>{const r=[...document.querySelectorAll('#stage .row')].find(r=>/JAV Guru/.test(r.querySelector('.row-title').textContent)); return r? r.innerText.replace(/\\n/g,' | '):null})()");
+ok("JAV Guru nel repository", !!row, row);
+await ev(`(()=>{const r=[...document.querySelectorAll('#stage .row')].find(r=>/JAV Guru/.test(r.querySelector('.row-title').textContent)); const b=r&&r.querySelector('[data-act="install"]'); if(b) b.click(); return 1})()`);
+await waitFor("Object.values(Mly.memory.extensions).some(e=>e.name==='JAV Guru')", 40000); await sleep(800);
+const jav = await ev("(()=>{const e=Object.values(Mly.memory.extensions).find(e=>e.name==='JAV Guru'); return e?{id:e.id,v:e.version}:null})()");
+ok("JAV Guru installata", !!jav, jav);
+await click('[data-act="browse"][data-tab="sources"]'); await sleep(300);
+await click(`[data-act="open-source"][data-id="${jav.id}"]`);
+const g = "document.querySelectorAll('#grid-source .vgrid-track > *:not([hidden])').length";
+const err = "(document.querySelector('#stage .empty')||{}).innerText";
+let t0 = Date.now(); let got = await waitFor(g + ">0 || !!document.querySelector('#stage .empty p')", 60000); await sleep(3000);
+ok("Popolari", await ev(g) > 0, { celle: await ev(g), errore: await ev(err), sec: (Date.now() - t0) / 1000, img: await ev("[...document.querySelectorAll('#grid-source img')].filter(i=>i.naturalWidth).length") });
+await click('[data-act="src-tab"][data-tab="latest"]'); t0 = Date.now();
+await sleep(500); await waitFor("!document.querySelector('#stage .empty h2') || !/Caricamento/.test(document.querySelector('#stage .empty h2').textContent)", 60000); await sleep(2500);
+ok("Ultimi", await ev(g) > 0, { celle: await ev(g), errore: await ev(err), sec: (Date.now() - t0) / 1000, primo: await ev("(document.querySelector('#grid-source .vcell .vcell-title')||{}).textContent") });
+await click('[data-act="src-search"]'); await sleep(300);
+for (const ch of "summer") await click(`#osk [data-key="${ch}"]`);
+await click('#osk [data-key="done"]'); t0 = Date.now();
+await sleep(500); await waitFor("!document.querySelector('#stage .empty h2') || !/Caricamento/.test(document.querySelector('#stage .empty h2').textContent)", 60000); await sleep(2500);
+ok("Cerca 'summer'", await ev(g) > 0, { riga: await ev("(document.querySelector('.query-line')||{}).textContent"), celle: await ev(g), errore: await ev(err) });
+await ev("document.querySelector('#grid-source .vcell').click(); 1");
+await waitFor("document.querySelector('[data-act=detail-play]') && document.querySelectorAll('[data-mount=episodes] .vrow').length>0 || !!document.querySelector('.detail-right .empty p')", 60000); await sleep(800);
+const det = await ev("({titolo:(document.querySelector('.detail-hero h1')||{}).textContent, meta:(document.querySelector('.detail-hero .meta')||{}).textContent, pulsante:(document.querySelector('[data-act=detail-play]')||{}).textContent, episodi:document.querySelectorAll('[data-mount=episodes] .vrow').length, errore:(document.querySelector('.detail-right .empty')||{}).innerText})");
+ok("dettaglio", det.episodi > 0, det);
+await click('[data-act=detail-play]');
+const playing = await waitFor("(()=>{const v=document.getElementById('player-video'); return v && v.readyState>=2 && v.currentTime>1})() || (document.getElementById('player-error')&&!document.getElementById('player-error').hidden) || !!document.querySelector('#dialog')", 60000);
+await sleep(2500);
+const vid = await ev("(()=>{const v=document.getElementById('player-video'); const e=document.getElementById('player-error'); const d=document.querySelector('#dialog'); return {t:v&&+v.currentTime.toFixed(1), w:v&&v.videoWidth, h:v&&v.videoHeight, qualita:(document.getElementById('player-quality')||{}).textContent, opzioni:[...document.querySelectorAll('#player-qualities button')].map(b=>b.textContent), errore:e&&!e.hidden?e.textContent:'', dialogo:d?d.innerText.slice(0,300):''}})()");
+ok("video JAV Guru", vid.t > 1 && vid.w > 0, vid);
+await key(10009); await sleep(600); if (await ev("!!document.querySelector('#dialog')")) { await key(10009); await sleep(300); }
+await key(10009); await sleep(400); await key(10009); await sleep(400);
+console.log(results.join("\n"));
+console.log("--- errori console ---\n" + logs.join("\n"));
+process.exit(0);

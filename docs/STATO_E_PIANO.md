@@ -117,3 +117,17 @@ Limiti TV: niente WebView/login (evaluateJavascriptViaWebview), Cookie/Set-Cooki
   - miniature PMVHaven più leggere (thumb_md).
 - Test su Chromium headless del box: 40/40 superati (tools/v032test.mjs).
 - Per installarla serve il via libera di Adam: `tizen install -n MangayomiFull-0.3.2.wgt -s 192.168.1.3:26101`.
+
+## v0.3.3: installata sulla TV il 14/11/2026 verso le 16:18 (ora di Roma)
+- Pacchetto: C:\tizen-apps\MangayomiFull-0.3.3.wgt (firmato Adamtv). Le versioni precedenti sono in MangayomiFull-0.3.2.wgt e MangayomiFull-0.3.1.wgt.
+- Correzioni rispetto alla 0.3.2, emerse dalla prova sulla TV:
+  - aggiunto il privilegio tv.inputdevice: senza, i tasti numerici davano "Permission denied";
+  - le copertine "custom" di PMVHaven, grandi fino a 4K, ora usano la versione webp a 480x270: prima la griglia si bloccava fino a 4 s.
+- Verificato sulla TV:
+  - interfaccia in italiano e avvio su Libreria;
+  - modalità adulti con 0×5 e con Su×5 (tasti inviati via CDP), nascosta di nuovo dopo il riavvio; i tasti 0-9 sono registrati;
+  - One Piece: "Inizia · Ep. 1" → Ep_0001, "Riprendi Ep. 1 · 2:12" riparte a 133 s, oltre il 90% → "Continua Ep. 2" e "✓ Visto";
+  - PMVHaven: 40 elementi, ricerca "anime" 20 risultati, video 1920x1080;
+  - JAV Guru 1.0.0: Popolari 30, Ultimi 20, ricerca 21, video 1920x1080.
+- Fluidità nella griglia PMV, frame medio 17,4 ms e massimo 150-167 ms (0.3.1: 17,6-19,4 ms e 266-883 ms).
+- All'uscita la cronologia e i progressi sono vuoti; estensioni installate: AnimeWorld, PMVHaven, JAV Guru.

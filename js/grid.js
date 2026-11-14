@@ -29,6 +29,8 @@
         .replace(/\/large\//, "/medium/");
       // PMVHaven: the 426x240 thumbnail is enough for a poster slot (the "lg" one is 640x360).
       u = u.replace(/(\/thumbnails\/[0-9a-f]+\/)thumb_lg\.webp$/i, "$1thumb_md.webp");
+      // PMVHaven custom covers are full-size JPEGs (1920x1080 up to 4K, up to 1.4 MB): use the 480x270 webp of the same video.
+      u = u.replace(/\/([0-9a-f]{24})\/thumbnail\/custom_\1\.(jpe?g|png|webp)$/i, "/$1/thumbnail/webp320_$1.webp");
     } catch (e) {}
     return u;
   }
@@ -76,7 +78,8 @@
       const img = el.querySelector("img");
       img.addEventListener("error", () => {
         const cur = img.getAttribute("src") || "";
-        if (/\/thumb_md\.webp$/.test(cur)) { img.src = cur.replace(/thumb_md\.webp$/, "thumb_lg.webp"); return; }
+        const orig = img.dataset.orig || "";
+        if (orig && cur !== orig) { img.src = orig; return; }
         img.removeAttribute("src");
         img.parentElement.classList.add("broken");
       });
@@ -140,6 +143,7 @@
             if (img.dataset.src !== src) {
               img.dataset.src = src;
               img.parentElement.classList.remove("broken");
+              img.dataset.orig = item.imageUrl || "";
               if (src) img.src = src;
               else img.removeAttribute("src");
             }

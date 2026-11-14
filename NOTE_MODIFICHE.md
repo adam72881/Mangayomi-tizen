@@ -30,3 +30,8 @@
 3. **Interfaccia in italiano**: schermate, pulsanti, dialoghi, stati, messaggi d'errore di lettore, runtime e caricatore delle estensioni.
 4. **"Su" da "Carica altro"** torna alla griglia, sullo stesso elemento (attributo data-up in nav.js).
 5. **Miniature PMVHaven**: si usa thumb_md.webp (426x240) invece di thumb_lg.webp (640x360). Se manca, si torna a quella grande.
+
+# v0.3.3 (14/11/2026), correzioni dopo la prova sulla TV della 0.3.2
+
+- config.xml: aggiunto il privilegio `http://tizen.org/privilege/tv.inputdevice`. Senza, sulla TV `tizen.tvinputdevice` rispondeva "Permission denied" e i tasti numerici del telecomando non venivano registrati.
+- js/grid.js: le copertine "custom_<id>.jpeg" di PMVHaven, a piena risoluzione (1920x1080 o 3830x2160, fino a 1,4 MB), vengono sostituite con "webp320_<id>.webp" (480x270) dello stesso video. Se mancano, si torna all'originale. Sulla TV causavano blocchi fino a 4 s nella griglia.
