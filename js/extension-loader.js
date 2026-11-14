@@ -74,10 +74,30 @@
     if (!res.ok) throw new Error("Download non riuscito: " + url + " (" + res.status + ").");
     return res.text();
   }
-  async function fetchIndex(url) {
-    const data = JSON.parse(await fetchText(url || Mly.memory.settings.repoUrl));
+  async function fetchOne(url) {
+    const data = JSON.parse(await fetchText(url));
     if (!Array.isArray(data)) throw new Error("L'indice del repository non è una lista.");
     return data.filter((e) => e && e.isManga !== true && (e.itemType == null || e.itemType === 1));
+  }
+  // Uno o più repository (anime_index.json), come in Mangayomi. Le estensioni con lo
+  // stesso id si tengono una volta sola, dal primo repository in elenco. Se qualche
+  // repository non risponde si mostrano gli altri; l'errore c'è solo se falliscono tutti.
+  async function fetchIndex(urls) {
+    const list = (Array.isArray(urls) ? urls : [urls || Mly.memory.settings.repoUrl]).filter(Boolean);
+    const results = await Promise.all(list.map((u) => fetchOne(u).then((items) => ({ u, items }), (err) => ({ u, err }))));
+    const ok = results.filter((r) => r.items);
+    api.indexErrors = results.filter((r) => r.err).map((r) => r.u + ": " + (r.err.message || r.err));
+    if (list.length && !ok.length) throw results[0].err;
+    const seen = {};
+    const out = [];
+    ok.forEach((r) => r.items.forEach((e) => {
+      const id = String(e.id);
+      if (seen[id]) return;
+      seen[id] = true;
+      e.repo = r.u;
+      out.push(e);
+    }));
+    return out;
   }
   async function install(entry) {
     if (!entry || !entry.sourceCodeUrl) throw new Error("Questa estensione non ha l'indirizzo del codice.");
@@ -168,8 +188,9 @@
     drop(key);
   }
 
-  Mly.ext = {
+  const api = Mly.ext = {
     instance, drop, installedList, fetchIndex, install, uninstall, setPinned,
     call, supportsLatest, getFilters, getPreferences, savePreference, notImplemented,
+    indexErrors: [],
   };
 })();

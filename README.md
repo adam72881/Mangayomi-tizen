@@ -2,7 +2,7 @@
 
 A Tizen web app (`.wgt`) of the anime side of [Mangayomi](https://github.com/kodjodevf/mangayomi). It follows the same screen names and order, and it runs the same JavaScript extensions (`DefaultExtension extends MProvider`).
 
-Version 0.3.2 Built for a 2024 Samsung TV: Tizen 9, Chromium 120, 1920×1080, remote only.
+Version 0.3.7. Built for a 2024 Samsung TV (1920×1080), remote only. The interface follows the TV language (Italian or English) and can be changed in More › Language. Extensions come from one or more repositories set in More › Browse.
 
 The app opens on **Library**. **Browse** is Sources, Extensions, then Migrate. Choosing a source opens **Popular**, with **Latest**, **Search**, and **Filter** on that same screen.
 
@@ -81,3 +81,11 @@ Checked from this environment on 14 November 2026, against that index, in headle
 ## What this TV cannot do
 
 There is no WebView. `Cookie`, `Referer`, and `User-Agent` are removed from extension requests because Chromium refuses them. If a site then shows a browser check, an age wall, a paywall, or a login cookie, the screen says so. This app does not bypass those checks, and it does not proxy or rewrite them.
+
+## Install on your TV
+
+Step-by-step guide (Italian): [docs/INSTALLAZIONE.md](docs/INSTALLAZIONE.md). In short: Developer Mode on the TV, a Samsung certificate profile with your TV's DUID, then `tizen build-web`, `tizen package -s <profile>` and `tizen install`. Never commit certificates or signing profiles.
+
+## License
+
+Apache License 2.0, see [LICENSE](LICENSE) and [NOTICE](NOTICE). This is an independent client: it implements the Mangayomi JavaScript extension API and contains no Mangayomi Dart code.

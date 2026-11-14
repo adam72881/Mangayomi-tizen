@@ -8,7 +8,7 @@ PORT=${CDP_PORT:-9444}
 node tools/servefull.mjs > /tmp/mly-serve.log 2>&1 & SERVE=$!
 rm -rf /tmp/mly-chrome
 ${CHROME:-google-chrome} --headless=new --autoplay-policy=no-user-gesture-required --disable-web-security \
-  --user-data-dir=/tmp/mly-chrome --remote-debugging-port=$PORT --window-size=1920,1080 \
+  --lang=it-IT --accept-lang=it-IT,it --user-data-dir=/tmp/mly-chrome --remote-debugging-port=$PORT --window-size=1920,1080 \
   http://127.0.0.1:8770/index.html > /dev/null 2>&1 & CHR=$!
 sleep 4
 # L'ordine conta: v032test parte da un'app appena aperta e installa AnimeWorld; gli altri la usano.

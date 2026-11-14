@@ -2,12 +2,12 @@
 
 Questo è l'unico file con le modifiche di ogni versione e lo stato attuale. `docs/STATO_E_PIANO.md` resta come diario storico dei primi passi (ambiente, firma, installazione).
 
-## Stato attuale (v0.3.6, ramo `cursor/v035-tizen-5ab3`, PR #1)
+## Stato attuale (v0.3.7, ramo `claude/v037-licenza-lingua-repo`)
 
-- `main` è la v0.3.4. La v0.3.6 è passata nei test headless ma **non è ancora stata installata né provata sulla TV**: il pacchetto va rifirmato da questa versione.
+- `main` è la v0.3.6. La v0.3.7 è su un ramo a parte e passa i test headless, ma **non è ancora stata installata né provata sulla TV**. Va in main solo dopo l'approvazione. Installazione: `docs/INSTALLAZIONE.md`.
 - **Test:** `tools/run-tests.sh` dalla radice del repository. Servono node 20+, Chrome o Chromium (variabile `CHROME`) e Internet: i test usano il repository delle estensioni e i siti veri.
   - Il server locale è `tools/servefull.mjs`, sulla porta 8770 con la stessa CSP di config.xml. Chrome headless gira con CDP sulla porta 9444.
-  - I test girano in quest'ordine: `v032test`, `uninstalltest`, `playertest`, `navtest`.
+  - I test girano in quest'ordine: `v032test`, `uninstalltest`, `playertest`, `navtest`. Chrome parte in italiano (`--lang=it-IT`), perché la lingua dell'app segue quella di sistema.
   - `javtest` e `hypnotest` sono facoltativi: da un server quei siti rispondono con un controllo del browser o con l'age-gate.
 - **Limiti noti:**
   - Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell'età non vengono aggirati.
@@ -103,3 +103,24 @@ Le correzioni principali sono nei commit 990aa14, 9db8e78 e 1ff1ddc di questo ra
   I grandi vuoti visti sulla TV nella v0.3.5 erano dovuti a #4 (celle non dimensionate dalla seconda griglia in poi), ora corretto.
 - **Documentazione**: `docs/V035_STATO.md` è stato tolto. Ripeteva questo file: le parti ancora utili (test e limiti) sono in «Stato attuale» qui in cima.
 - Test headless: 123 PASS, 0 FAIL.
+
+# v0.3.7 (14/11/2026), su un ramo a parte, non ancora installata
+
+Preparazione per proporre l'app al progetto Mangayomi.
+
+- **Licenza:** `LICENSE` (Apache-2.0, come Mangayomi) e `NOTICE` con le componenti di terze parti: icona Aniyomi, hls.js e l'API delle estensioni di Mangayomi.
+- **Lingua** (nuovo `js/i18n.js`):
+  - Di serie la lingua è quella **della TV**: se la TV è in italiano l'app resta in italiano, altrimenti va in inglese.
+  - In Altro › Lingua si sceglie «Lingua della TV (automatica)», Italiano o English; l'app si ricarica.
+  - Come funziona: l'interfaccia è scritta in italiano, e in inglese i testi noti vengono sostituiti mentre compaiono (dizionario e alcuni modelli per i testi con numeri). Titoli e descrizioni delle estensioni restano come sono.
+- **Più repository di estensioni**, come in Mangayomi:
+  - In Altro › Sfoglia c'è l'elenco dei repository (`settings.repoUrls`), con «Rimuovi» su ogni riga e «Aggiungi repository».
+  - Le installazioni vecchie con un solo `repoUrl` vengono convertite da sole.
+  - Le estensioni con lo stesso id si tengono una volta sola, dal primo repository. Se un repository non risponde, quelle degli altri restano.
+- **Pulsante «Web»:**
+  - Sulla TV apre la pagina nel browser di sistema (`tizen.application.launchAppControl`, operazione view; nuovo privilegio `application.launch`).
+  - Serve solo a vedere la pagina: il login fatto nel browser non passa all'app.
+  - Fuori dalla TV, o se il browser non si apre, compare il messaggio di prima.
+- **Guida all'installazione:** `docs/INSTALLAZIONE.md` (italiano), più un riassunto in inglese nel README.
+- **Test:** `navtest.mjs` controlla l'elenco dei repository, che con un repository che non risponde restino gli altri, la scelta della lingua, l'italiano automatico e la traduzione in inglese. Totale: 128 PASS, 0 FAIL.
+- Versione 0.3.7 in config.xml e in Informazioni.

@@ -376,6 +376,7 @@
     else if (frame.name === "about") paint(renderAbout(), null);
     else if (frame.name === "player-settings") paint(renderPlayerSettings(), null);
     else if (frame.name === "browse-settings") paint(renderBrowseSettings(), null);
+    else if (frame.name === "language") paint(renderLanguage(), null);
     else if (frame.name === "categories") paint(renderCategories(), null);
     else paint(renderRoot(), null);
   }
@@ -510,6 +511,7 @@
       ["categories", "Categorie"],
       ["player-settings", "Lettore"],
       ["browse-settings", "Sfoglia"],
+      ["language", "Lingua"],
       ["about", "Informazioni"],
     ];
     const body = '<div class="rows">' + rows.map((r, i) => (
@@ -519,7 +521,7 @@
   }
 
   function renderAbout() {
-    return screen("about", "Informazioni", '<div class="prose"><p>Mangayomi per TV Samsung. Libreria anime, estensioni e lettore, con la stessa API delle estensioni di Mangayomi.</p><p>Versione 0.3.6</p><p>Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell\'età non vengono aggirati.</p><p>La riproduzione parte alla qualità più alta. Per HLS si usa la variante più alta, non Auto.</p><p>Le estensioni arrivano dal repository indicato in Altro › Sfoglia.</p></div>', "");
+    return screen("about", "Informazioni", '<div class="prose"><p>Mangayomi per TV Samsung. Libreria anime, estensioni e lettore, con la stessa API delle estensioni di Mangayomi.</p><p>Versione 0.3.7</p><p>Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell\'età non vengono aggirati.</p><p>La riproduzione parte alla qualità più alta. Per HLS si usa la variante più alta, non Auto.</p><p>Le estensioni arrivano dai repository indicati in Altro › Sfoglia.</p></div>', "");
   }
 
   function renderPlayerSettings() {
@@ -529,8 +531,22 @@
       '<button type="button" class="row-main" data-focus data-autofocus data-act="toggle-av"><span class="row-title">Samsung AVPlay per MP4</span><span class="row-meta">' + (av ? (on ? "Attivo" : "Disattivo") : "Non disponibile su questo dispositivo. Si usano video HTML e hls.js.") + "</span></button></div>", "");
   }
 
+  // Più repository di estensioni, come in Mangayomi: ogni riga con «Rimuovi», sotto «Aggiungi repository».
   function renderBrowseSettings() {
-    return screen("browse-settings", "Sfoglia", '<div class="prose"><p>Repository anime</p><p class="mono" id="repo-url">' + esc(Mly.memory.settings.repoUrl) + '</p></div><div class="button-row"><button type="button" class="primary" data-focus data-autofocus data-act="edit-repo">Modifica</button></div>', "");
+    const urls = Mly.memory.settings.repoUrls || [];
+    const rows = urls.length ? urls.map((u, i) => (
+      '<div class="row"><span class="row-title pad mono">' + esc(u) + '</span><button type="button" class="text-btn" data-focus data-fid="repo-del-' + i + '"' + (i === 0 ? " data-autofocus" : "") + ' data-act="del-repo" data-i="' + i + '">Rimuovi</button></div>'
+    )).join("") : '<p class="row-meta pad">Nessun repository. Aggiungine uno per vedere le estensioni.</p>';
+    return screen("browse-settings", "Sfoglia", '<div class="prose"><p>Repository anime</p><p class="row-meta">Indirizzo di un anime_index.json (repository di estensioni Mangayomi).</p></div><div class="rows" data-rownav>' + rows + '</div><div class="button-row"><button type="button" class="primary" data-focus data-fid="repo-add"' + (urls.length ? "" : " data-autofocus") + ' data-act="add-repo">Aggiungi repository</button></div>', "");
+  }
+
+  function renderLanguage() {
+    const cur = Mly.memory.settings.lang || "auto";
+    const opts = [["auto", "Lingua della TV (automatica)"], ["it", "Italiano"], ["en", "English"]];
+    const body = '<div class="rows">' + opts.map((o) => (
+      '<button type="button" class="row-main" data-focus data-fid="lang-' + o[0] + '"' + (o[0] === cur ? " data-autofocus" : "") + ' data-act="set-lang" data-lang="' + o[0] + '"><span class="row-title">' + (o[0] === cur ? "✓ " : "") + esc(o[1]) + "</span></button>"
+    )).join("") + '</div><p class="row-meta pad">Si applica subito; l\'app si ricarica.</p>';
+    return screen("language", "Lingua", body, "");
   }
 
   function renderCategories() {
@@ -790,7 +806,7 @@
     root.extError = "";
     if (!top() && root.tab === "browse") render();
     try {
-      root.extIndex = await Mly.ext.fetchIndex(Mly.memory.settings.repoUrl);
+      root.extIndex = await Mly.ext.fetchIndex(Mly.memory.settings.repoUrls);
       root.extLoading = false;
     } catch (e) {
       root.extLoading = false;
@@ -1201,14 +1217,35 @@
     if (act === "noop") return;
     if (act === "push") { stack.push({ name: el.dataset.screen }); render(); return; }
     if (act === "toggle-av") { Mly.memory.settings.useAvPlay = !Mly.memory.settings.useAvPlay; Mly.db.saveSettings(); render(); return; }
-    if (act === "edit-repo") {
-      openOsk({ title: "Repository anime", value: Mly.memory.settings.repoUrl, apply: (value) => {
-        Mly.memory.settings.repoUrl = value.trim() || Mly.memory.settings.repoUrl;
+    if (act === "add-repo") {
+      openOsk({ title: "Repository anime", value: "https://", apply: (value) => {
+        const url = value.trim();
+        if (!/^https?:\/\/\S+$/i.test(url)) { openDialog("Repository anime", "Indirizzo di un anime_index.json (repository di estensioni Mangayomi)."); return; }
+        const list = Mly.memory.settings.repoUrls || [];
+        if (!list.includes(url)) list.push(url);
+        Mly.memory.settings.repoUrls = list;
         Mly.db.saveSettings();
-        const node = document.getElementById("repo-url");
-        if (node) node.textContent = Mly.memory.settings.repoUrl;
         root.extIndex = null;
+        render();
       } });
+      return;
+    }
+    if (act === "del-repo") {
+      const list = (Mly.memory.settings.repoUrls || []).slice();
+      list.splice(Number(el.dataset.i), 1);
+      Mly.memory.settings.repoUrls = list;
+      Mly.db.saveSettings();
+      root.extIndex = null;
+      render();
+      const next = document.querySelector('[data-fid="repo-del-' + Math.min(Number(el.dataset.i), list.length - 1) + '"]') || document.querySelector('[data-fid="repo-add"]');
+      if (next) Mly.nav.focus(next);
+      return;
+    }
+    if (act === "set-lang") {
+      Mly.memory.settings.lang = el.dataset.lang;
+      Mly.db.saveSettings();
+      // Ricarica: testi della barra laterale e schermate si ridisegnano nella lingua scelta.
+      setTimeout(() => location.reload(), 150);
       return;
     }
     if (act === "add-cat") {
@@ -1348,7 +1385,13 @@
     if (act === "no-webview") {
       const src = frame ? sourceOf(frame.sourceId) : null;
       const url = frame && frame.link ? absUrl(src && src.baseUrl, frame.link) : (src && src.baseUrl) || "";
-      openDialog("Nessuna WebView", "Questa TV non ha WebView. Apri la pagina da telefono o computer" + (url ? ": " + url : "."));
+      const fallback = () => openDialog("Nessuna WebView", "Questa TV non ha WebView. Apri la pagina da telefono o computer" + (url ? ": " + url : "."));
+      // Sulla TV la pagina si apre nel browser di sistema (Samsung Internet). Serve solo a
+      // vederla: il login fatto lì resta nel browser e non sblocca le estensioni.
+      if (!url || !/^https?:/i.test(url) || !(window.tizen && tizen.application && tizen.ApplicationControl)) { fallback(); return; }
+      try {
+        tizen.application.launchAppControl(new tizen.ApplicationControl("http://tizen.org/appcontrol/operation/view", url, null, null, null), null, () => {}, fallback);
+      } catch (e) { fallback(); }
       return;
     }
     if (act === "mig-title") { root.migrate.entryId = el.dataset.id; root.migrate.step = 1; render(); return; }
