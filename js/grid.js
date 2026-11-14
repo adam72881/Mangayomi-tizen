@@ -4,13 +4,14 @@
    video or GIF previews, and size hints stay at the poster slot. */
 (function () {
   const Mly = (window.Mly = window.Mly || {});
-  // Same grid as Mangayomi on TV (gridview_widget.dart): covers up to 150 dp
-  // wide, aspect 0.69, 10 dp spacing. Android TV is 960x540 dp, so 1 dp = 2 px here.
-  const MAX_W = 300;
+  // Compact TV grid: about the same density as v0.3.4 (many covers, a small gap),
+  // with Mangayomi's 0.69 cover ratio. A wide 150 dp cell left only six covers
+  // and large holes once the next screen forgot to copy the size.
+  const MAX_W = 180;
   const ASPECT = 0.69;
-  const POSTER_GAP = 20;
-  let POSTER_W = 240;
-  let POSTER_H = Math.round(240 / ASPECT);
+  const POSTER_GAP = 12;
+  let POSTER_W = 168;
+  let POSTER_H = Math.round(168 / ASPECT);
   const ROW_H = 84;
   const ROW_GAP = 16;
   const OVERSCAN = 1;
@@ -65,16 +66,17 @@
       const w = viewport.clientWidth || host.clientWidth || 0;
       if (variant === "rows") cols = 1;
       else if (w > 0) {
-        // SliverGridDelegateWithMaxCrossAxisExtent: as many columns as needed so none is wider than MAX_W.
+        // As many columns as fit under MAX_W, then the cell is exactly that wide.
+        // Always write the size onto this host: a later screen starts from the
+        // previous POSTER_W, so a "same width" check would skip it and the CSS
+        // default (168px) would not match the positions.
         cols = Math.max(1, Math.ceil((w + GAP) / (MAX_W + GAP)));
-        const nw = Math.floor((w - (cols - 1) * GAP) / cols);
-        if (nw !== cellW) {
-          cellW = nw;
-          posterH = Math.round(nw / ASPECT);
-          POSTER_W = cellW; POSTER_H = posterH;
-          host.style.setProperty("--cell-w", cellW + "px");
-          host.style.setProperty("--cell-h", posterH + "px");
-        }
+        cellW = Math.max(1, Math.floor((w - (cols - 1) * GAP) / cols));
+        posterH = Math.round(cellW / ASPECT);
+        POSTER_W = cellW;
+        POSTER_H = posterH;
+        host.style.setProperty("--cell-w", cellW + "px");
+        host.style.setProperty("--cell-h", posterH + "px");
       }
       const rows = items.length ? Math.ceil(items.length / cols) : 0;
       totalH = rows ? rows * cellH() + Math.max(0, rows - 1) * GAP : 0;
@@ -146,6 +148,12 @@
           const y = r * rowH;
           const transform = "translate3d(" + x + "px," + y + "px,0)";
           if (el.style.transform !== transform) el.style.transform = transform;
+          if (variant !== "rows") {
+            const wpx = cellW + "px";
+            const hpx = posterH + "px";
+            if (el.style.width !== wpx) el.style.width = wpx;
+            if (el.style.height !== hpx) el.style.height = hpx;
+          }
           const item = items[i];
           const key = (item.link || item.url || "") + "|" + (item.name || "");
           if (force || el.dataset.key !== key) {

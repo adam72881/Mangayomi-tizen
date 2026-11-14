@@ -117,6 +117,13 @@
       const after = items.find((el) => list.contains(el) && !el.closest(".row"));
       if (after) { focus(after); return true; }
     }
+    // Above the first row sits the selected tab (Sorgenti, Popolari, …), not
+    // whichever pill happens to be nearest the middle of the row.
+    if (dir === "up") {
+      const screen = list.closest(".screen") || document;
+      const tab = screen.querySelector(".pill.is-on");
+      if (tab && items.includes(tab)) { focus(tab); return true; }
+    }
     return false;
   }
 

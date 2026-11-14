@@ -16,6 +16,7 @@
     dialog: null,
     osk: null,
     filtersFor: null,
+    returnFid: "",
   };
   const stack = [];
 
@@ -218,6 +219,7 @@
     updateRail();
     // On the main tabs, a redraw keeps focus on the same button when it is still there.
     const was = Mly.nav.current();
+    if (!fid && root.returnFid) { fid = root.returnFid; root.returnFid = ""; }
     if (!fid && !top() && was && stage().contains(was) && was.dataset.fid) fid = was.dataset.fid;
     stage().innerHTML = html;
     mountGrids();
@@ -443,7 +445,7 @@
     if (!list.length) {
       return '<div class="empty"><h2>Nessuna sorgente</h2><p>Installane una da Estensioni.</p><button type="button" class="primary" data-focus data-act="browse" data-tab="extensions">Estensioni</button></div>';
     }
-    return '<div class="rows">' + list.map((s) => (
+    return '<div class="rows" data-rownav>' + list.map((s) => (
       '<div class="row">' +
       '<button type="button" class="row-main" data-focus data-act="open-source" data-id="' + esc(s.id) + '" data-fid="source-' + esc(s.id) + '">' +
       '<span class="row-title">' + esc(s.name) + "</span>" +
@@ -551,7 +553,7 @@
     else if (frame.error) body += '<div class="empty"><h2>Impossibile caricare la sorgente</h2><p>' + esc(frame.error) + '</p><button type="button" class="primary" data-focus data-fid="src-retry" data-autofocus data-act="src-retry">Riprova</button></div>';
     else if (!frame.items.length) body += '<div class="empty"><h2>Nessun risultato</h2></div>';
     else {
-      body += '<div id="grid-source" class="vgrid-host" data-mount="source" data-focus data-grid="1" data-fid="grid-source" data-autofocus tabindex="0"></div>';
+      body += '<div id="grid-source" class="vgrid-host" data-mount="source" data-focus data-grid="1" data-fid="grid-source" data-up="' + (frame.tab === "search" ? "src-search" : "src-tab-" + frame.tab) + '" data-autofocus tabindex="0"></div>';
       if (frame.hasNext) body += '<div class="footer-row"><button type="button" class="text-btn" data-focus data-act="more" data-up="grid-source">Carica altro</button></div>';
     }
     return '<section class="screen" data-screen="source"><header class="top"><h1>' + esc(src.name) + "</h1>" + tools + "</header>" + body + "</section>";
@@ -614,7 +616,7 @@
       b("prev", "Episodio precedente", ICON.prev, " icon-only") + b("back10", "Indietro 10 s", ICON.back10, " icon-only") +
       b("play", "Pausa", ICON.pause, " icon-only big") + b("fwd10", "Avanti 10 s", ICON.fwd10, " icon-only") + b("next", "Episodio successivo", ICON.next, " icon-only") +
       '</div><div class="ctl-group">' +
-      b("skip", "+85 s  Salta intro", "", " pill-btn") + b("quality", "Qualità", "", " pill-btn") + b("subs", "Sottotitoli", "", " pill-btn") +
+      b("skip", "+85 s  Salta intro", "", " pill-btn") + b("quality", "Video", "", " pill-btn") +
       "</div></div>" +
       '<div id="player-time" class="player-time" hidden></div><div id="player-quality" class="player-quality" hidden></div>' +
       '</div><div id="player-qualities" class="quality-sheet" hidden><div class="sheet-handle"></div><h3 class="sheet-title">Qualità</h3><div id="player-quality-rows" class="sheet-rows">' + buttons + "</div></div></div></section>";
@@ -666,14 +668,26 @@
     return "";
   }
 
+  function rememberFocus() {
+    const cur = Mly.nav.current();
+    paintDialog.returnTo = cur && document.contains(cur) ? cur : null;
+    paintDialog.returnFid = cur && cur.dataset && cur.dataset.fid ? cur.dataset.fid : "";
+  }
+  function restoreFocus() {
+    const back = paintDialog.returnTo;
+    const fid = paintDialog.returnFid || "";
+    paintDialog.returnTo = null;
+    paintDialog.returnFid = "";
+    if (back && document.contains(back)) { Mly.nav.focus(back); return; }
+    const again = fid && stage() && stage().querySelector('[data-fid="' + fid + '"]');
+    const fallback = again || (stage() && (stage().querySelector("[data-autofocus]") || stage().querySelector("[data-focus]")));
+    if (fallback) Mly.nav.focus(fallback);
+  }
   function paintDialog() {
     let el = document.getElementById("dialog");
     if (!root.dialog) {
       if (el) el.remove();
-      // Back to where the user was before the dialog, if it is still on screen.
-      const back = paintDialog.returnTo;
-      paintDialog.returnTo = null;
-      if (back && document.contains(back)) Mly.nav.focus(back);
+      restoreFocus();
       return;
     }
     if (!el) {
@@ -710,8 +724,14 @@
   function paintFilters() {
     let el = document.getElementById("filters");
     const frame = root.filtersFor;
-    if (!frame || !frame.showFilters) { if (el) el.remove(); return; }
+    if (!frame || !frame.showFilters) {
+      if (el) el.remove();
+      if (paintFilters.wasOpen) { paintFilters.wasOpen = false; restoreFocus(); }
+      return;
+    }
     if (!el) {
+      rememberFocus();
+      paintFilters.wasOpen = true;
       el = document.createElement("div");
       el.id = "filters";
       el.dataset.modal = "1";
@@ -752,10 +772,16 @@
   }
 
   function openOsk(opts) {
+    rememberFocus();
     root.osk = { title: opts.title || "Cerca", value: opts.value || "", apply: opts.apply };
     paintOsk();
   }
-  function closeOsk() { root.osk = null; paintOsk(); }
+  function closeOsk() {
+    root.osk = null;
+    const el = document.getElementById("osk");
+    if (el) el.remove();
+    restoreFocus();
+  }
 
   async function ensureIndex() {
     if (root.extLoading) return;
@@ -964,11 +990,12 @@
   }
 
   function openDialog(title, body) {
+    rememberFocus();
     root.dialog = { title, body };
     paintDialog();
   }
   function openConfirm(title, body, okLabel, onOk) {
-    paintDialog.returnTo = Mly.nav.current();
+    rememberFocus();
     root.dialog = { title, body, confirm: true, okLabel, onOk };
     paintDialog();
   }
@@ -1329,6 +1356,7 @@
     if (act === "confirm-ok") {
       const d = root.dialog;
       paintDialog.returnTo = null;
+      paintDialog.returnFid = "";
       root.dialog = null;
       paintDialog();
       if (d && d.onOk) d.onOk();
@@ -1455,6 +1483,7 @@
     if (stack.length) {
       const leaving = stack.pop();
       if (leaving.name === "player") Mly.player.stop();
+      if (leaving.name === "source") root.returnFid = "source-" + leaving.sourceId;
       render();
       return;
     }

@@ -85,6 +85,24 @@
     if (h === -1) return "Auto";
     return "";
   }
+  function nearestP(h) {
+    const buckets = [2160, 1440, 1080, 720, 540, 480, 360, 240];
+    let best = h;
+    let dist = 80;
+    buckets.forEach((b) => {
+      const d = Math.abs(b - h);
+      if (d < dist) { dist = d; best = b; }
+    });
+    return best;
+  }
+  function qualityButtonLabel() {
+    if (!frame) return "Video";
+    const h = heightOf(frame.videos[frame.videoIndex]);
+    if (h > 1) return h + "p";
+    if (lockedHeight > 1) return lockedHeight + "p";
+    if (video && video.videoHeight > 1) return nearestP(video.videoHeight) + "p";
+    return "Video";
+  }
 
   function stop(noSave) {
     if (!noSave && frame && (video || usingAv)) { try { remember(false); } catch (e) {} }
@@ -201,9 +219,10 @@
       } else if (id === "prev") btn.disabled = prevOf() < 0;
       else if (id === "next") btn.disabled = nextOf() < 0;
       else if (id === "quality") {
-        const label = frame ? "Qualità" + (shortQuality(frame.videos[frame.videoIndex]) ? " · " + shortQuality(frame.videos[frame.videoIndex]) : "") : "Qualità";
+        const label = qualityButtonLabel();
         const span = btn.querySelector(".pctl-label");
         if (span && span.textContent !== label) span.textContent = label;
+        btn.setAttribute("aria-label", "Qualità " + label);
         btn.disabled = !frame || frame.videos.length < 2;
       } else if (id === "subs") {
         const subs = subtitleList();
