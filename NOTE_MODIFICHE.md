@@ -2,18 +2,26 @@
 
 Questo è l'unico file con le modifiche di ogni versione e lo stato attuale. `docs/STATO_E_PIANO.md` resta come diario storico dei primi passi (ambiente, firma, installazione).
 
-## Stato attuale (v0.3.9, ramo `cursor/paginazione-riassunto-aaaf`)
+## Stato attuale (v0.3.10, ramo `cursor/playlist-saturn-referer-2909`)
 
-- `main` è la v0.3.8 (PR #15). La v0.3.9 va provata sulla TV con la checklist della sua PR. Installazione: `docs/INSTALLAZIONE.md`.
+- `main` è la v0.3.8 (PR #15). La v0.3.9 (PR #16, pagine successive e riassunto) non è ancora unita: questa versione parte da lì. La v0.3.10 va provata sulla TV con la checklist della sua PR. Installazione: `docs/INSTALLAZIONE.md`.
 - **Test:** `tools/run-tests.sh` dalla radice del repository. Servono node 20+, Chrome o Chromium (variabile `CHROME`) e Internet: i test usano il repository delle estensioni e i siti veri.
   - Il server locale è `tools/servefull.mjs`, sulla porta 8770 con la stessa CSP di config.xml. Chrome headless gira con CDP sulla porta 9444.
-  - I test girano in quest'ordine: `v032test`, `uninstalltest`, `playertest`, `navtest`, `pagetest`. Chrome parte in italiano (`--lang=it-IT`), perché la lingua dell'app segue quella di sistema. `pagetest` non usa i siti: simula una sorgente con più pagine.
+  - I test girano in quest'ordine: `v032test`, `uninstalltest`, `playertest`, `navtest`, `pagetest`, `saturntest`. Chrome parte in italiano (`--lang=it-IT`), perché la lingua dell'app segue quella di sistema. `pagetest` non usa i siti: simula una sorgente con più pagine. `saturntest` non usa i siti: simula il Download API di Tizen.
   - `javtest` e `hypnotest` sono facoltativi: da un server quei siti rispondono con un controllo del browser o con l'age-gate.
 - **Limiti noti:**
-  - Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell'età non vengono aggirati.
+  - Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare, tranne il Referer della sola playlist `https://play.saturncdn.net/embed/<id>/playlist` (Download API). Cloudflare, anti-bot, paywall e verifiche dell'età non vengono aggirati. Il token di quella playlist non si scrive nei log.
   - Sottotitoli: solo tracce WebVTT fornite dall'estensione in `video.subtitles`. SRT e sottotitoli HLS non sono gestiti.
   - Stripchat: il segnaposto da 12 s («Find the real thing on STRIPCHAT.COM», stanza privata o offline) non parte e compare «Stanza privata o offline». L'HD protetto dal sito non si aggira.
   - I problemi delle singole estensioni vanno nel repository adam72881/mangayomi-anime-extensions (HypnoTube: `docs/HYPNOTUBE_POPOLARI.md`).
+
+## v0.3.10 (15/11/2026)
+
+- **Playlist di AnimeSaturn.** `GET https://play.saturncdn.net/embed/<id>/playlist` risponde 403 senza `Referer: https://play.saturncdn.net/`, e `fetch` sulla TV non può impostare quell'header. Solo per quell'URL, `http()` in `js/runtime.js` usa `tizen.DownloadRequest` (header Referer, rete `ALL`, cartella `downloads`) e `tizen.download.start`. In `oncompleted` il file si legge con `tizen.filesystem`, il testo è il corpo della risposta, poi il file si cancella. Il nome del file è `as-playlist-<n>.json` e non contiene il token.
+- Se `tizen.download` o `tizen.DownloadRequest` non ci sono, la promessa viene rifiutata con un messaggio che lo dice. Il token della query non entra né in quel messaggio né nei log.
+- Privilegi nuovi in `config.xml`: `download`, `mediastorage`, `filesystem.read`. Le altre richieste restano su `fetch`, senza Cookie, Referer o User-Agent.
+- Versione 0.3.10 in `config.xml` e in Informazioni.
+- Test: `tools/saturntest.mjs`, con un Download API finto.
 
 ## v0.3.9 (15/11/2026)
 

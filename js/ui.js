@@ -629,7 +629,7 @@
   }
 
   function renderAbout() {
-    return screen("about", "Informazioni", '<div class="prose"><p>Mangayomi per TV Samsung. Libreria anime, estensioni e lettore, con la stessa API delle estensioni di Mangayomi.</p><p>Versione 0.3.9</p><p>Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell\'età non vengono aggirati.</p><p>La riproduzione parte alla qualità più alta. Per HLS si usa la variante più alta, non Auto.</p><p>Le estensioni arrivano dai repository indicati in Altro › Sfoglia.</p></div>', "");
+    return screen("about", "Informazioni", '<div class="prose"><p>Mangayomi per TV Samsung. Libreria anime, estensioni e lettore, con la stessa API delle estensioni di Mangayomi.</p><p>Versione 0.3.10</p><p>Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell\'età non vengono aggirati.</p><p>La riproduzione parte alla qualità più alta. Per HLS si usa la variante più alta, non Auto.</p><p>Le estensioni arrivano dai repository indicati in Altro › Sfoglia.</p></div>', "");
   }
 
   function renderPlayerSettings() {

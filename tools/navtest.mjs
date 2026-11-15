@@ -150,7 +150,7 @@ ok("Altro › Lettore: l'interruttore AVPlay cambia e si salva", await ev("Mly.m
 await click('[data-act="toggle-av"]'); await sleep(200);
 await key(10009); await sleep(300);
 await click('[data-act="push"][data-screen="about"]'); await sleep(300);
-ok("Altro › Informazioni: versione 0.3.9", /0\.3\.9/.test(await ev("document.querySelector('.screen').innerText")));
+ok("Altro › Informazioni: versione 0.3.10", /0\.3\.10/.test(await ev("document.querySelector('.screen').innerText")));
 // Issue #13: in inglese tutta la pagina Informazioni è tradotta
 await ev("Mly.memory.settings.lang='en'; Mly.i18n.start(); 1"); await sleep(300);
 const aboutEn = await ev("document.querySelector('.screen .prose').innerText");
