@@ -198,7 +198,9 @@
       paintFocus();
     }
 
-    function reveal() {
+    // silent: aggiorna lo scroll senza dire all'app che il focus è cambiato
+    // (serve quando si aggiungono pagine, altrimenti parte un altro caricamento).
+    function reveal(silent) {
       if (!items.length) return;
       if (!measured) measure();
       const row = Math.floor(index / cols);
@@ -213,7 +215,7 @@
         track.style.transform = "translate3d(0," + (-scrollY) + "px,0)";
         bind(false);
       } else paintFocus();
-      if (opts.onIndex) opts.onIndex(index);
+      if (!silent && opts.onIndex) opts.onIndex(index);
     }
 
     function move(dir) {
@@ -233,7 +235,11 @@
       } else if (dir === "down") {
         if (index + cols < items.length) next = index + cols;
         else if (Math.floor(index / cols) < Math.floor((items.length - 1) / cols)) next = items.length - 1;
-        else return false;
+        else {
+          // Già sull'ultima riga: l'app può chiedere la pagina successiva.
+          if (opts.onEdge) opts.onEdge("down");
+          return false;
+        }
       }
       index = next;
       reveal();
@@ -242,12 +248,15 @@
 
     function setItems(next, keepIndex) {
       items = next || [];
-      if (!keepIndex) index = 0;
+      if (!keepIndex) {
+        index = 0;
+        scrollY = 0;
+        track.style.transform = "translate3d(0,0,0)";
+      }
       if (index >= items.length) index = Math.max(0, items.length - 1);
-      scrollY = 0;
-      track.style.transform = "translate3d(0,0,0)";
       measure();
       bind(true);
+      if (keepIndex) reveal(true);
     }
 
     function activate() {
@@ -260,6 +269,7 @@
       blur() { paintFocus(); },
       get index() { return index; },
       get length() { return items.length; },
+      get cols() { return cols; },
       jump(i) { if (!items.length) return; index = Math.max(0, Math.min(items.length - 1, i)); reveal(); },
       relayout() { measure(); bind(false); reveal(); },
     };
