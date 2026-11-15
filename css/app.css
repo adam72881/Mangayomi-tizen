@@ -64,7 +64,8 @@ img { display: block; }
 .empty h2 { margin: 8px 0; font-size: 32px; }
 .empty-mark { color: #d0bcff; display: flex; justify-content: center; }
 .detail-screen { display: grid; grid-template-columns: 46fr 54fr; gap: 36px; padding-top: 32px; }
-.detail-left, .detail-right { min-height: 0; min-width: 0; display: flex; flex-direction: column; }
+.detail-left, .detail-right { min-height: 0; min-width: 0; display: flex; flex-direction: column; overflow: hidden; }
+.detail-hero, .primary-action, .dactions { flex: none; }
 .detail-left { gap: 18px; }
 .detail-hero { display: flex; gap: 24px; align-items: flex-start; }
 .detail-cover { flex: none; width: 220px; height: 320px; object-fit: cover; border-radius: 14px; background: #2b2930; box-shadow: 0 6px 24px rgba(0,0,0,0.45); }
@@ -81,7 +82,12 @@ img { display: block; }
 .dact { flex: 1; display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 12px 8px; border-radius: 16px; background: #211f26; color: #e6e0e9; border: 3px solid transparent; font-size: 18px; }
 .dact-icon svg { width: 30px; height: 30px; fill: #d0bcff; }
 .dact.is-focused { border-color: #d0bcff; background: #4a4458; }
-.desc { color: #e6e0e9; font-size: 20px; line-height: 1.45; max-height: 7.25em; overflow: hidden; margin: 0; }
+.desc { color: #e6e0e9; font-size: 22px; line-height: 1.45; margin: 0; flex: 1 1 auto; min-height: 72px; overflow-y: auto; white-space: pre-wrap; overflow-wrap: anywhere; padding: 8px 12px; border: 3px solid transparent; border-radius: 14px; }
+.desc.is-focused { border-color: #d0bcff; }
+.source-status { flex: none; display: flex; align-items: center; gap: 16px; min-height: 64px; }
+.source-status p { margin: 0; flex: 1; min-width: 0; color: #cac4d0; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+.sheet-body { overflow-y: auto; max-height: 62vh; line-height: 1.45; font-size: 26px; white-space: pre-wrap; overflow-wrap: anywhere; padding: 8px 12px; border: 3px solid transparent; border-radius: 14px; }
+.sheet-body.is-focused { border-color: #d0bcff; }
 [data-mount="episodes"] .vrow { height: 128px; gap: 18px; }
 [data-mount="episodes"] .vrow-thumb img { width: 192px; height: 108px; }
 [data-mount="episodes"] .vrow-title { font-size: 22px; max-height: 2.6em; }

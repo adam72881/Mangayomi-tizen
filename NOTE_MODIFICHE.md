@@ -2,18 +2,28 @@
 
 Questo è l'unico file con le modifiche di ogni versione e lo stato attuale. `docs/STATO_E_PIANO.md` resta come diario storico dei primi passi (ambiente, firma, installazione).
 
-## Stato attuale (v0.3.8, ramo `claude/v038-lucchetto-traduzione`)
+## Stato attuale (v0.3.9, ramo `cursor/paginazione-riassunto-aaaf`)
 
-- `main` è la v0.3.7, provata sulla TV con le PR #11 e #12 (punti 1–7 e 14–29 ok; i punti 8–13, login e preferiti, sono da provare più avanti). La v0.3.8 passa i test headless (177 PASS) e va provata sulla TV con la checklist della sua PR. Installazione: `docs/INSTALLAZIONE.md`.
+- `main` è la v0.3.8 (PR #15). La v0.3.9 va provata sulla TV con la checklist della sua PR. Installazione: `docs/INSTALLAZIONE.md`.
 - **Test:** `tools/run-tests.sh` dalla radice del repository. Servono node 20+, Chrome o Chromium (variabile `CHROME`) e Internet: i test usano il repository delle estensioni e i siti veri.
   - Il server locale è `tools/servefull.mjs`, sulla porta 8770 con la stessa CSP di config.xml. Chrome headless gira con CDP sulla porta 9444.
-  - I test girano in quest'ordine: `v032test`, `uninstalltest`, `playertest`, `navtest`. Chrome parte in italiano (`--lang=it-IT`), perché la lingua dell'app segue quella di sistema.
+  - I test girano in quest'ordine: `v032test`, `uninstalltest`, `playertest`, `navtest`, `pagetest`. Chrome parte in italiano (`--lang=it-IT`), perché la lingua dell'app segue quella di sistema. `pagetest` non usa i siti: simula una sorgente con più pagine.
   - `javtest` e `hypnotest` sono facoltativi: da un server quei siti rispondono con un controllo del browser o con l'age-gate.
 - **Limiti noti:**
   - Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell'età non vengono aggirati.
   - Sottotitoli: solo tracce WebVTT fornite dall'estensione in `video.subtitles`. SRT e sottotitoli HLS non sono gestiti.
   - Stripchat: il segnaposto da 12 s («Find the real thing on STRIPCHAT.COM», stanza privata o offline) non parte e compare «Stanza privata o offline». L'HD protetto dal sito non si aggira.
   - I problemi delle singole estensioni vanno nel repository adam72881/mangayomi-anime-extensions (HypnoTube: `docs/HYPNOTUBE_POPOLARI.md`).
+
+## v0.3.9 (15/11/2026)
+
+- **Paginazione di Sfoglia (Popolari, Ultimi/Recenti, ricerca e filtri).** La pagina dopo non si caricava e la lista sembrava finita.
+  - `hasNext` diventava falso se la pagina nuova era vuota (`hasNextPage && list.length`). In Recenti AnimeWorld toglie le serie già viste e può rispondere con zero titoli e `hasNextPage` ancora vero: l'app si fermava.
+  - Un errore sulla pagina successiva, o una pagina vuota perché il sito ha risposto con un blocco, non veniva mostrato se c'erano già dei titoli. Ora resta la lista, in fondo c'è il messaggio e **Riprova** (OK).
+  - In fondo, mentre arriva la pagina, c'è «Caricamento…». Il telecomando la chiede sull'ultima riga (e su quella prima), non solo a 12 titoli dalla fine. Giù sull'ultima riga la richiede anche se il focus era già lì.
+- **Riassunto nel dettaglio.** Il testo era tagliato da CSS (`max-height: 7.25em`). AnimeWorld mette il riassunto intero in `div.desc`: non è la fonte a troncarlo. Ora il riquadro scorre con Su/Giù e OK lo apre per intero.
+- Versione 0.3.9 in `config.xml` e in Informazioni.
+- Test: `tools/pagetest.mjs` (più pagine, pagina vuota, errore con Riprova, «Caricamento…», riassunto).
 
 ## v0.3.8 (15/11/2026)
 

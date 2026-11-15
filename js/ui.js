@@ -247,11 +247,20 @@
           focusIndex: frame.focusIndex || 0,
           onIndex: (i) => {
             frame.focusIndex = i;
-            // Like Mangayomi: the next page loads by itself when the focus nears the end of the grid.
-            if (frame.hasNext && !frame.appending && i >= (frame.items || []).length - 12) {
-              frame.appending = true;
-              loadSource(frame, true).then(() => { frame.appending = false; }, () => { frame.appending = false; });
+            // Un aggiornamento della griglia che non ha aggiunto titoli non deve
+            // rilanciare da solo il caricamento (altrimenti le pagine vuote girano in tondo).
+            if (frame._quiet) { frame._quiet = false; return; }
+            // Come in Mangayomi: vicino al fondo si chiede da sola la pagina dopo.
+            if (nearEnd(frame, i)) loadSource(frame, true);
+          },
+          onEdge: (dir) => {
+            if (dir !== "down") return;
+            if (frame.pageError) {
+              const btn = document.querySelector('[data-fid="src-page-retry"]');
+              if (btn) Mly.nav.focus(btn);
+              return;
             }
+            if (frame.hasNext) loadSource(frame, true);
           },
           onActivate: (item) => openDetail(frame.sourceId, item.link, item),
         });
@@ -386,7 +395,15 @@
     if (!frame) paint(renderRoot(), null);
     // Entering a source, as in Mangayomi: focus on the Popolari/Ultimi tab while
     // it loads, then on the first cover. Never on the Cerca button at the top.
-    else if (frame.name === "source") paint(renderSource(frame), frame.loading ? (frame.tab === "search" ? "src-search" : "src-tab-" + frame.tab) : frame.error ? "src-retry" : frame.items.length ? "grid-source" : (frame.tab === "search" ? "src-search" : "src-tab-" + frame.tab));
+    else if (frame.name === "source") {
+      const fid = frame.loading ? (frame.tab === "search" ? "src-search" : "src-tab-" + frame.tab)
+        : frame.error ? "src-retry"
+        : frame.pageError ? "src-page-retry"
+        : frame.items.length ? "grid-source"
+        : frame.hasNext ? "src-page-retry"
+        : (frame.tab === "search" ? "src-search" : "src-tab-" + frame.tab);
+      paint(renderSource(frame), fid);
+    }
     else if (frame.name === "detail") paint(renderDetail(frame), "detail-play");
     else if (frame.name === "player") paint(renderPlayer(frame), null);
     else if (frame.name === "prefs") paint(renderPrefs(frame), null);
@@ -612,7 +629,7 @@
   }
 
   function renderAbout() {
-    return screen("about", "Informazioni", '<div class="prose"><p>Mangayomi per TV Samsung. Libreria anime, estensioni e lettore, con la stessa API delle estensioni di Mangayomi.</p><p>Versione 0.3.8</p><p>Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell\'età non vengono aggirati.</p><p>La riproduzione parte alla qualità più alta. Per HLS si usa la variante più alta, non Auto.</p><p>Le estensioni arrivano dai repository indicati in Altro › Sfoglia.</p></div>', "");
+    return screen("about", "Informazioni", '<div class="prose"><p>Mangayomi per TV Samsung. Libreria anime, estensioni e lettore, con la stessa API delle estensioni di Mangayomi.</p><p>Versione 0.3.9</p><p>Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell\'età non vengono aggirati.</p><p>La riproduzione parte alla qualità più alta. Per HLS si usa la variante più alta, non Auto.</p><p>Le estensioni arrivano dai repository indicati in Altro › Sfoglia.</p></div>', "");
   }
 
   function renderPlayerSettings() {
@@ -666,10 +683,10 @@
     }
     if (frame.loading) body += '<div class="empty"><h2>Caricamento…</h2></div>';
     else if (frame.error) body += '<div class="empty"><h2>Impossibile caricare la sorgente</h2><p>' + esc(frame.error) + '</p><button type="button" class="primary" data-focus data-fid="src-retry" data-autofocus data-act="src-retry">Riprova</button></div>';
-    else if (!frame.items.length) body += '<div class="empty"><h2>Nessun risultato</h2></div>';
+    else if (!frame.items.length) body += '<div class="empty"><h2>Nessun risultato</h2>' + (frame.hasNext ? '<button type="button" class="primary" data-focus data-fid="src-page-retry" data-autofocus data-act="page-retry">Riprova</button>' : "") + "</div>";
     else {
       body += '<div id="grid-source" class="vgrid-host" data-mount="source" data-focus data-grid="1" data-fid="grid-source" data-up="' + (frame.tab === "search" ? "src-search" : "src-tab-" + frame.tab) + '" data-autofocus tabindex="0"></div>';
-      if (frame.hasNext) body += '<div class="footer-row"><button type="button" class="text-btn" data-focus data-act="more" data-up="grid-source">Carica altro</button></div>';
+      body += sourceStatusHtml(frame);
     }
     return '<section class="screen" data-screen="source"><header class="top"><h1>' + esc(src.name) + "</h1>" + tools + "</header>" + body + "</section>";
   }
@@ -709,7 +726,7 @@
     const left = '<div class="detail-hero">' + (cover ? '<img class="detail-cover" alt="" width="220" height="320" src="' + esc(cover) + '">' : '<div class="detail-cover"></div>') + '<div class="detail-info"><h1>' + esc(name) + "</h1><p class=\"meta\">" + esc(meta) + "</p>" + tags + "</div></div>" +
       '<button type="button" class="primary-action" data-focus data-autofocus data-fid="detail-play" data-act="detail-play">' + DICON.play + "<span>" + esc(choice.label) + "</span></button>" +
       '<div class="dactions">' + actions + "</div>" +
-      "<p class=\"desc\">" + esc(manga.description || "") + "</p>";
+      (manga.description ? '<div class="desc" data-focus data-scroll="1" data-fid="detail-desc" data-act="detail-desc" data-up="detail-play" tabindex="0">' + esc(manga.description) + "</div>" : "");
     let right;
     if (frame.loading && !chapters.length) right = '<div class="empty"><h2>Caricamento…</h2></div>';
     else if (frame.error && !chapters.length) right = '<div class="empty"><p>' + esc(frame.error) + '</p><button type="button" class="text-btn" data-focus data-act="detail-refresh">Riprova</button></div>';
@@ -835,6 +852,11 @@
     if (root.dialog.confirm) {
       // As in Mangayomi: Annulla / confirm, with the safe choice focused first.
       el.innerHTML = '<div class="sheet confirm-sheet"><h2>' + esc(root.dialog.title) + "</h2><p>" + esc(root.dialog.body) + '</p><div class="button-row confirm-row"><button type="button" class="text-btn" data-focus data-autofocus data-act="close-dialog" data-fid="confirm-cancel">Annulla</button><button type="button" class="primary danger" data-focus data-act="confirm-ok" data-fid="confirm-ok">' + esc(root.dialog.okLabel || "OK") + "</button></div></div>";
+      Mly.nav.focus(el.querySelector("[data-autofocus]"));
+      return;
+    }
+    if (root.dialog.scroll) {
+      el.innerHTML = '<div class="sheet"><h2>' + esc(root.dialog.title) + '</h2><div class="sheet-body" data-focus data-scroll="1" data-fid="dialog-scroll" data-autofocus tabindex="0">' + esc(root.dialog.body) + '</div><button type="button" class="primary" data-focus data-act="close-dialog">OK</button></div>';
       Mly.nav.focus(el.querySelector("[data-autofocus]"));
       return;
     }
@@ -1003,35 +1025,137 @@
     loadSource(frame, false);
   }
 
+  // true / "true" / 1: la fonte ha un'altra pagina. Una lista vuota non basta a
+  // dire che è finita: Recenti di AnimeWorld toglie le serie già viste e può
+  // restituire zero titoli con hasNextPage ancora vero.
+  function hasNextPage(res) {
+    if (!res) return false;
+    const v = res.hasNextPage != null ? res.hasNextPage : res.hasNext;
+    if (v === true || v === 1 || v === "1" || v === "true") return true;
+    return false;
+  }
+  function freshItems(have, list) {
+    const seen = {};
+    (have || []).forEach((it) => { if (it && it.link) seen[it.link] = true; });
+    const out = [];
+    (list || []).forEach((it) => {
+      if (!it) return;
+      if (it.link && seen[it.link]) return;
+      if (it.link) seen[it.link] = true;
+      out.push(it);
+    });
+    return out;
+  }
+  // Ultime due righe, contate con le colonne vere della griglia (non un
+  // numero fisso di titoli: con tante colonne l'ultima riga restava fuori).
+  function nearEnd(frame, i) {
+    const n = (frame.items || []).length;
+    if (!frame.hasNext || frame.appending || frame.loading || frame.pageError || n < 1) return false;
+    if (i < 0) return false;
+    const host = document.getElementById("grid-source");
+    const cols = Math.max(1, (host && host._grid && host._grid.cols) || 1);
+    const lastRow = Math.floor((n - 1) / cols);
+    return Math.floor(i / cols) >= lastRow - 1;
+  }
+  function sourceStatusHtml(frame) {
+    if (frame.appending) return '<div class="source-status" id="source-status" role="status"><p>Caricamento…</p></div>';
+    if (frame.pageError) {
+      return '<div class="source-status" id="source-status"><p>' + esc(frame.pageError) + '</p><button type="button" class="text-btn" data-focus data-fid="src-page-retry" data-act="page-retry" data-up="grid-source">Riprova</button></div>';
+    }
+    if (frame.hasNext) return '<div class="source-status" id="source-status"><button type="button" class="text-btn" data-focus data-act="more" data-up="grid-source">Carica altro</button></div>';
+    return '<div class="source-status" id="source-status"></div>';
+  }
+  function paintSourceStatus(frame) {
+    const el = document.getElementById("source-status");
+    if (!el) return false;
+    el.outerHTML = sourceStatusHtml(frame);
+    if (frame.pageError) {
+      const btn = document.querySelector('[data-fid="src-page-retry"]');
+      if (btn) Mly.nav.focus(btn);
+    }
+    return true;
+  }
+
   async function loadSource(frame, append) {
+    if (append && frame.appending) return;
+    frame.loadGen = (frame.loadGen || 0) + 1;
+    const gen = frame.loadGen;
+    const live = () => frame.loadGen === gen && top() === frame;
+    frame.appending = !!append;
     frame.loading = !append;
-    frame.error = "";
-    if (!append) render();
-    const page = append ? frame.page + 1 : 1;
+    frame.pageError = "";
+    if (!append) {
+      frame.error = "";
+      render();
+    } else if (!paintSourceStatus(frame)) {
+      render();
+    }
+    let page = append ? (frame.page || 1) + 1 : 1;
+    let added = 0;
+    let skips = 0;
     try {
-      let res;
-      if (frame.tab === "latest") res = await Mly.ext.call(frame.sourceId, "getLatestUpdates", (e) => e.getLatestUpdates(page));
-      else if (frame.tab === "search") res = await Mly.ext.call(frame.sourceId, "search", (e) => e.search(frame.query || "", page, frame.filters || []));
-      else res = await Mly.ext.call(frame.sourceId, "getPopular", (e) => e.getPopular(page));
-      if (top() !== frame) return;
-      const list = ((res && res.list) || []).map((item) => ({
-        name: item.name || "",
-        link: item.link || "",
-        imageUrl: absUrl((sourceOf(frame.sourceId) || {}).baseUrl, item.imageUrl || ""),
-      }));
-      frame.page = page;
-      frame.hasNext = !!(res && res.hasNextPage && list.length);
-      frame.items = append ? frame.items.concat(list) : list;
+      for (;;) {
+        let res;
+        if (frame.tab === "latest") res = await Mly.ext.call(frame.sourceId, "getLatestUpdates", (e) => e.getLatestUpdates(page));
+        else if (frame.tab === "search") res = await Mly.ext.call(frame.sourceId, "search", (e) => e.search(frame.query || "", page, frame.filters || []));
+        else res = await Mly.ext.call(frame.sourceId, "getPopular", (e) => e.getPopular(page));
+        if (!live()) return;
+        const list = ((res && res.list) || []).map((item) => ({
+          name: item.name || "",
+          link: item.link || "",
+          imageUrl: absUrl((sourceOf(frame.sourceId) || {}).baseUrl, item.imageUrl || ""),
+        }));
+        // Pagina vuota e il sito ha risposto con un blocco: non è la fine della lista.
+        if (!list.length) {
+          const note = Mly.runtime.blockNote();
+          if (note) throw new Error(note);
+        }
+        const hasNext = hasNextPage(res);
+        const base = append ? frame.items : [];
+        const fresh = freshItems(base, list);
+        if (!fresh.length && hasNext && skips < 8) {
+          skips += 1;
+          frame.page = page;
+          page += 1;
+          continue;
+        }
+        frame.page = page;
+        frame.hasNext = hasNext;
+        frame.items = append ? frame.items.concat(fresh) : fresh;
+        added = fresh.length;
+        break;
+      }
+      if (!live()) return;
       frame.loading = false;
+      frame.appending = false;
       if (!frame.items.length) {
         const note = Mly.runtime.blockNote();
         if (note) frame.error = note;
       }
+      const host = document.getElementById("grid-source");
+      if (append && host && host._grid && !frame.error) {
+        host._grid.setItems(frame.items, true);
+        paintSourceStatus(frame);
+        const cur = Mly.nav.current();
+        const lost = !cur || !document.contains(cur);
+        if (lost && added === 0) frame._quiet = true;
+        if (lost) Mly.nav.focus(host);
+        // Se il focus è rimasto sulla griglia e ancora in fondo, un'altra pagina.
+        else if (added > 0 && nearEnd(frame, host._grid.index)) loadSource(frame, true);
+        return;
+      }
       render();
     } catch (e) {
-      if (top() !== frame) return;
+      if (!live()) return;
       frame.loading = false;
-      frame.error = e.message || String(e);
+      frame.appending = false;
+      const msg = e.message || String(e);
+      if (append && frame.items.length) {
+        frame.pageError = "Pagina successiva non caricata. " + msg;
+        if (!paintSourceStatus(frame)) render();
+        return;
+      }
+      frame.error = msg;
       render();
     }
   }
@@ -1182,9 +1306,9 @@
     }
   }
 
-  function openDialog(title, body) {
+  function openDialog(title, body, opts) {
     rememberFocus();
-    root.dialog = { title, body };
+    root.dialog = { title, body, scroll: !!(opts && opts.scroll) };
     paintDialog();
   }
   function exitApp() {
@@ -1572,7 +1696,12 @@
       paintFilters();
       return;
     }
-    if (act === "more") { loadSource(frame, true); return; }
+    if (act === "more" || act === "page-retry") { loadSource(frame, true); return; }
+    if (act === "detail-desc") {
+      const text = (frame.manga && frame.manga.description) || (frame.preview && frame.preview.description) || "";
+      if (text) openDialog("Riassunto", text, { scroll: true });
+      return;
+    }
     if (act === "src-retry") { loadSource(frame, false); return; }
     if (act === "detail-play") {
       const chapters = chaptersOf(frame.manga || {});
@@ -1774,13 +1903,26 @@
     openConfirm("Esci", "Vuoi uscire da Mangayomi?", "Esci", exitApp);
   }
 
+  // Su/Giù sul riassunto (e sul riquadro aperto con OK) scorrono il testo.
+  // Agli estremi il focus si sposta, come sulle altre schermate.
+  function scrollFocused(dir) {
+    const el = Mly.nav.current();
+    if (!el || el.dataset.scroll !== "1") return false;
+    if (el.scrollHeight <= el.clientHeight + 4) return false;
+    const max = el.scrollHeight - el.clientHeight;
+    if (dir === "down" && el.scrollTop >= max - 4) return false;
+    if (dir === "up" && el.scrollTop <= 4) return false;
+    el.scrollTop += (dir === "down" ? 1 : -1) * Math.max(72, Math.round(el.clientHeight * 0.55));
+    return true;
+  }
+
   function onKey(e) {
     if (!root.osk && (e.key === "0" || e.keyCode === 48 || e.keyCode === 96)) {
       e.preventDefault();
       if (secretPress(secret.zero)) setAdult(!adult);
       return;
     }
-    if (e.key === "ArrowUp" && !top() && root.tab === "library") {
+    if ((e.key === "ArrowUp" || e.key === "Up" || e.keyCode === 38) && !top() && root.tab === "library") {
       const cur = Mly.nav.current();
       if (cur && cur.dataset.zone === "rail" && cur.dataset.tab === "library") {
         // Nothing is above Library in the rail: Up stays here and only counts.
@@ -1797,9 +1939,13 @@
       onOsk(e.key);
       return;
     }
-    if (e.key === "ArrowLeft" || e.key === "ArrowRight" || e.key === "ArrowUp" || e.key === "ArrowDown") {
+    const arrows = { ArrowLeft: "left", ArrowRight: "right", ArrowUp: "up", ArrowDown: "down", Left: "left", Right: "right", Up: "up", Down: "down" };
+    let dir = arrows[e.key];
+    if (!dir && e.keyCode >= 37 && e.keyCode <= 40) dir = ["left", "up", "right", "down"][e.keyCode - 37];
+    if (dir) {
       e.preventDefault();
-      Mly.nav.move(e.key.replace("Arrow", "").toLowerCase());
+      if ((dir === "up" || dir === "down") && scrollFocused(dir)) return;
+      Mly.nav.move(dir);
       return;
     }
     if (e.key === "Enter" || e.key === " ") {
