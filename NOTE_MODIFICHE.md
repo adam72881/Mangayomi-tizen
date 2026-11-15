@@ -2,9 +2,9 @@
 
 Questo è l'unico file con le modifiche di ogni versione e lo stato attuale. `docs/STATO_E_PIANO.md` resta come diario storico dei primi passi (ambiente, firma, installazione).
 
-## Stato attuale (v0.3.7, ramo `claude/v037-licenza-lingua-repo`)
+## Stato attuale (v0.3.8, ramo `claude/v038-lucchetto-traduzione`)
 
-- `main` è la v0.3.6. La v0.3.7 è su un ramo a parte e passa i test headless, ma **non è ancora stata installata né provata sulla TV**. Va in main solo dopo l'approvazione. Installazione: `docs/INSTALLAZIONE.md`.
+- `main` è la v0.3.7, provata sulla TV con le PR #11 e #12 (punti 1–7 e 14–29 ok; i punti 8–13, login e preferiti, sono da provare più avanti). La v0.3.8 passa i test headless (177 PASS) e va provata sulla TV con la checklist della sua PR. Installazione: `docs/INSTALLAZIONE.md`.
 - **Test:** `tools/run-tests.sh` dalla radice del repository. Servono node 20+, Chrome o Chromium (variabile `CHROME`) e Internet: i test usano il repository delle estensioni e i siti veri.
   - Il server locale è `tools/servefull.mjs`, sulla porta 8770 con la stessa CSP di config.xml. Chrome headless gira con CDP sulla porta 9444.
   - I test girano in quest'ordine: `v032test`, `uninstalltest`, `playertest`, `navtest`. Chrome parte in italiano (`--lang=it-IT`), perché la lingua dell'app segue quella di sistema.
@@ -14,6 +14,19 @@ Questo è l'unico file con le modifiche di ogni versione e lo stato attuale. `do
   - Sottotitoli: solo tracce WebVTT fornite dall'estensione in `video.subtitles`. SRT e sottotitoli HLS non sono gestiti.
   - Stripchat: il segnaposto da 12 s («Find the real thing on STRIPCHAT.COM», stanza privata o offline) non parte e compare «Stanza privata o offline». L'HD protetto dal sito non si aggira.
   - I problemi delle singole estensioni vanno nel repository adam72881/mangayomi-anime-extensions (HypnoTube: `docs/HYPNOTUBE_POPOLARI.md`).
+
+## v0.3.8 (15/11/2026)
+
+- **Issue #14, lucchetto del lettore:**
+  - con il blocco attivo nessun tasto cambia niente: la barra dei comandi non si apre, Indietro non chiude il lettore, Destra e Sinistra non spostano il video;
+  - quando si blocca la sovrimpressione sparisce subito, e sparisce anche «Salta sigla»;
+  - a ogni tasto compare per 2 s solo un lucchetto grande (180 px) al centro del video, con sotto «OK due volte per sbloccare»;
+  - lo sblocco con due OK e Play/Pausa del telecomando funzionano come prima. Allo sblocco compare il lucchetto aperto con «Sbloccato»;
+  - due eccezioni: alla fine vera dell'episodio il conto alla rovescia del prossimo episodio si vede anche col blocco attivo, e un errore di riproduzione toglie il blocco, così il messaggio si legge;
+  - il lucchetto ora sta fuori dalla sovrimpressione dei comandi (`js/ui.js`). Le icone sono in `js/player.js` (`LOCK_SVG`, `UNLOCK_SVG`) e lo stile in `css/app.css` (`.lock-pop`, `.lock-icon`, `.lock-text`).
+- **Issue #13:** in Informazioni, con la lingua in inglese, il paragrafo sulla WebView restava in italiano. Ora è tradotto (`js/i18n.js`), e sono tradotti anche i testi del lucchetto.
+- Versione 0.3.8 in `config.xml` e in Informazioni.
+- Test: in `tools/playertest.mjs` 6 nuovi controlli sul lucchetto (centro, dimensione, comandi nascosti, Giù/Su, Indietro, sparisce dopo 2 s, Play/Pausa); in `tools/navtest.mjs` il controllo della pagina Informazioni in inglese. **177 PASS, 0 FAIL.**
 
 ---
 

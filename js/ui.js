@@ -612,7 +612,7 @@
   }
 
   function renderAbout() {
-    return screen("about", "Informazioni", '<div class="prose"><p>Mangayomi per TV Samsung. Libreria anime, estensioni e lettore, con la stessa API delle estensioni di Mangayomi.</p><p>Versione 0.3.7</p><p>Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell\'età non vengono aggirati.</p><p>La riproduzione parte alla qualità più alta. Per HLS si usa la variante più alta, non Auto.</p><p>Le estensioni arrivano dai repository indicati in Altro › Sfoglia.</p></div>', "");
+    return screen("about", "Informazioni", '<div class="prose"><p>Mangayomi per TV Samsung. Libreria anime, estensioni e lettore, con la stessa API delle estensioni di Mangayomi.</p><p>Versione 0.3.8</p><p>Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell\'età non vengono aggirati.</p><p>La riproduzione parte alla qualità più alta. Per HLS si usa la variante più alta, non Auto.</p><p>Le estensioni arrivano dai repository indicati in Altro › Sfoglia.</p></div>', "");
   }
 
   function renderPlayerSettings() {
@@ -738,11 +738,11 @@
     const buttons = qualityRows(frame.videos);
     const b = (id, label, icon, extra) => '<button type="button" class="pctl' + (extra || "") + '" data-pc="' + id + '" aria-label="' + esc(label) + '">' + (icon || "") + (icon && extra && extra.indexOf("icon-only") >= 0 ? "" : '<span class="pctl-label">' + esc(label) + "</span>") + "</button>";
     return '<section class="screen player-screen" data-screen="player"><video id="player-video" playsinline></video>' +
+      '<div id="player-lock" class="lock-pop" hidden><div class="lock-icon"></div><div class="lock-text"></div></div>' +
       '<div id="player-shade" class="player-shade is-shown">' +
       '<div class="player-top"><div class="player-name">' + esc(frame.title) + '</div><div class="player-ep">' + esc(frame.episodeName) + "</div></div>" +
       '<div id="player-center" class="player-center" hidden>' + ICON.play + "</div>" +
       '<div id="player-wait" class="player-wait" role="status" aria-label="Caricamento"></div>' +
-      '<div id="player-lock" class="lock-pop" hidden></div>' +
       '<div id="player-next" class="next-pop" hidden><div class="next-title">Prossimo episodio tra <span class="next-count">10</span> s</div><div class="next-keys"><span class="skip-key">OK</span> subito · <span class="skip-key">Indietro</span> annulla</div></div>' +
       '<button type="button" id="player-skip" class="skip-pop" data-act="player-skip" hidden><span class="skip-label">Salta sigla</span><span class="skip-key">OK</span></button>' +
       '<p id="player-error" class="player-error" hidden></p>' +

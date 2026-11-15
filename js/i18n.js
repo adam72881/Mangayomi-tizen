@@ -40,6 +40,8 @@
     "Parti alla qualità più alta": "Start at the highest quality", "Attivo. Per HLS viene bloccata la variante più alta, non Auto.": "On. For HLS the highest variant is locked, not Auto.",
     "Samsung AVPlay per MP4": "Samsung AVPlay for MP4", "Non disponibile su questo dispositivo. Si usano video HTML e hls.js.": "Not available on this device. HTML video and hls.js are used.",
     "Apri nel browser": "Open in browser", "Apri nel browser della TV": "Open in the TV browser",
+    "Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell'età non vengono aggirati.": "This TV has no WebView: Cookie, Referer and User-Agent can't be set. Cloudflare, anti-bot checks, paywalls and age verification are not bypassed.",
+    "OK due volte per sbloccare": "Press OK twice to unlock", "Premi ancora OK per sbloccare": "Press OK again to unlock", "Sbloccato": "Unlocked",
     "Mangayomi per TV Samsung. Libreria anime, estensioni e lettore, con la stessa API delle estensioni di Mangayomi.": "Mangayomi for Samsung TV. Anime library, extensions and player, with the same extension API as Mangayomi.",
     "La riproduzione parte alla qualità più alta. Per HLS si usa la variante più alta, non Auto.": "Playback starts at the highest quality. For HLS the highest variant is used, not Auto.",
     "Le estensioni arrivano dal repository indicato in Altro › Sfoglia.": "Extensions come from the repositories listed in More › Browse.",
