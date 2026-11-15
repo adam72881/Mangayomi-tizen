@@ -61,7 +61,8 @@
     let cellW = POSTER_W;
     let posterH = POSTER_H;
     const GAP = variant === "rows" ? ROW_GAP : POSTER_GAP;
-    function cellH() { return variant === "rows" ? ROW_H : posterH; }
+    const rowH = opts.rowH || ROW_H;
+    function cellH() { return variant === "rows" ? rowH : posterH; }
     function stride() { return cellH() + GAP; }
 
     function measure() {
@@ -73,7 +74,8 @@
         // Always write the size onto this host: a later screen starts from the
         // previous POSTER_W, so a "same width" check would skip it and the CSS
         // default (168px) would not match the positions.
-        cols = Math.max(1, Math.ceil((w + GAP) / (MAX_W + GAP)));
+        const fixed = Number(Mly.memory && Mly.memory.settings && Mly.memory.settings.gridCols) || 0;
+        cols = fixed >= 2 ? fixed : Math.max(1, Math.ceil((w + GAP) / (MAX_W + GAP)));
         cellW = Math.max(1, Math.floor((w - (cols - 1) * GAP) / cols));
         posterH = Math.round(cellW / ASPECT);
         POSTER_W = cellW;
@@ -98,7 +100,7 @@
         el.innerHTML = '<span class="vrow-thumb"><img alt="" width="96" height="54" decoding="async"></span><span class="vrow-text"><span class="vrow-title"></span><span class="vrow-meta"></span></span>';
       } else {
         // Mangayomi compact grid: rounded cover, title over a bottom gradient (cover_view_widget.dart, bottom_text_widget.dart).
-        el.innerHTML = '<span class="vcell-card"><span class="vcell-img"><img alt="" decoding="async"><span class="vcell-shade"></span><span class="vcell-title"></span></span></span>';
+        el.innerHTML = '<span class="vcell-card"><span class="vcell-img"><img alt="" decoding="async"><span class="vcell-shade"></span><span class="vcell-title"></span><span class="vcell-badge" hidden></span></span></span>';
       }
       const img = el.querySelector("img");
       img.addEventListener("error", () => {
@@ -164,6 +166,8 @@
             el.dataset.i = String(i);
             const title = el.querySelector(variant === "rows" ? ".vrow-title" : ".vcell-title");
             title.textContent = item.name || "";
+            const badge = el.querySelector(".vcell-badge");
+            if (badge) { badge.textContent = item.badge || ""; badge.hidden = !item.badge; }
             if (variant === "rows") {
               el.querySelector(".vrow-meta").textContent = item.meta || "";
               el.classList.toggle("is-watched", !!item.watched);
@@ -255,6 +259,8 @@
       focus() { reveal(); },
       blur() { paintFocus(); },
       get index() { return index; },
+      get length() { return items.length; },
+      jump(i) { if (!items.length) return; index = Math.max(0, Math.min(items.length - 1, i)); reveal(); },
       relayout() { measure(); bind(false); reveal(); },
     };
     host.addEventListener("click", () => api.activate());

@@ -1,0 +1,9 @@
+Mangayomi per TV Samsung (Mangayomi-tizen)
+Copyright 2026 adam72881 e collaboratori
+
+Rilasciato con licenza Apache License 2.0 (vedi LICENSE).
+
+Componenti di terze parti:
+- Icona: launcher di Aniyomi (aniyomiorg/aniyomi), Apache-2.0, vedi LICENSE-ANIYOMI-APACHE-2.0.txt e THIRD_PARTY_NOTICES.md.
+- hls.js (vendor/hls.min.js), licenza Apache-2.0.
+- L'app usa la stessa API delle estensioni JavaScript di Mangayomi (kodjodevf/mangayomi, Apache-2.0); non contiene codice Dart di Mangayomi.

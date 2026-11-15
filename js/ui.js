@@ -260,10 +260,13 @@
         const built = episodeCards(frame);
         Mly.grid.mount(host, {
           variant: "rows",
+          rowH: 128,
           items: built,
-          focusIndex: frame.epFocus != null ? frame.epFocus : resumeChoice(frame.sourceId, frame.link, chaptersOf(frame.manga || {})).idx,
+          // Come in Mangayomi l'elenco parte dall'alto (l'ultimo episodio uscito):
+          // l'episodio da guardare è già sul pulsante «Inizia/Continua».
+          focusIndex: frame.epFocus != null ? frame.epFocus : 0,
           onIndex: (i) => { frame.epFocus = i; },
-          onActivate: (item, i) => playFromDetail(frame, i),
+          onActivate: (item) => playFromDetail(frame, item.index),
         });
       } else if (kind === "history") {
         Mly.grid.mount(host, {
@@ -295,12 +298,18 @@
       list = list.filter((item) => String(item.name || "").toLowerCase().includes(q));
     }
     list.sort((a, b) => (b.addedAt || 0) - (a.addedAt || 0));
-    return list.map((item) => ({
-      name: item.name,
-      imageUrl: item.imageUrl,
-      link: item.link,
-      sourceId: item.sourceId,
-    }));
+    return list.map((item) => {
+      // Come in Mangayomi: sulla copertina il numero di episodi non ancora visti.
+      const prog = progressOf(item.sourceId, item.link);
+      const left = (item.chapters || []).filter((ch) => ch && ch.url && !isDone(prog, ch.url)).length;
+      return {
+        name: item.name,
+        imageUrl: item.imageUrl,
+        link: item.link,
+        sourceId: item.sourceId,
+        badge: left > 0 ? String(left) : "",
+      };
+    });
   }
   function historyCards() {
     return visibleHistory().map((item) => ({
@@ -340,12 +349,20 @@
     return d.toLocaleDateString("it-IT", { month: "short", day: "numeric" });
   }
 
+  function epSortOf(frame) {
+    const m = Mly.memory.settings.epSort || {};
+    return m[seriesKey(frame.sourceId, frame.link)] === "oldest" ? "oldest" : "newest";
+  }
   function episodeCards(frame) {
     const manga = frame.manga || {};
     const chapters = chaptersOf(manga);
     const prog = progressOf(frame.sourceId, frame.link);
     const base = (sourceOf(frame.sourceId) || {}).baseUrl || "";
-    return chapters.map((ch, i) => {
+    // Ordine scelto con il pulsante sopra l'elenco: dal più recente (predefinito,
+    // come Mangayomi) o dal primo. «index» resta la posizione vera nella lista.
+    const chrono = chronoOrder(chapters);
+    const order = epSortOf(frame) === "oldest" ? chrono : chrono.slice().reverse();
+    return order.map((i) => { const ch = chapters[i];
       const watched = isDone(prog, ch.url);
       const at = watched ? 0 : startAtFor(prog, ch.url);
       const resume = at > 0;
@@ -376,6 +393,9 @@
     else if (frame.name === "about") paint(renderAbout(), null);
     else if (frame.name === "player-settings") paint(renderPlayerSettings(), null);
     else if (frame.name === "browse-settings") paint(renderBrowseSettings(), null);
+    else if (frame.name === "language") paint(renderLanguage(), null);
+    else if (frame.name === "stats") paint(renderStats(), null);
+    else if (frame.name === "grid-cols") paint(renderGridCols(), null);
     else if (frame.name === "categories") paint(renderCategories(), null);
     else paint(renderRoot(), null);
   }
@@ -510,6 +530,9 @@
       ["categories", "Categorie"],
       ["player-settings", "Lettore"],
       ["browse-settings", "Sfoglia"],
+      ["language", "Lingua"],
+      ["grid-cols", "Copertine per riga"],
+      ["stats", "Statistiche"],
       ["about", "Informazioni"],
     ];
     const body = '<div class="rows">' + rows.map((r, i) => (
@@ -518,8 +541,78 @@
     return screen("more", "Altro", body, "");
   }
 
+  // Statistiche come in Mangayomi, calcolate dai dati salvati su questa TV.
+  // Con la modalità adulti nascosta, le sorgenti per adulti non vengono contate.
+  function statsData() {
+    const lib = visibleLibrary();
+    const okSource = (id) => adult || !nsfwSource(id);
+    let series = 0, episodes = 0, watchedMs = 0, last = 0;
+    const perSource = {};
+    Object.keys(Mly.memory.progress || {}).forEach((key) => {
+      const sourceId = key.split("|")[0];
+      if (!okSource(sourceId)) return;
+      const p = Mly.memory.progress[key] || {};
+      const seen = Object.keys(p.watched || {}).filter((u) => p.watched[u]).length;
+      const pos = p.positions || {};
+      let ms = 0;
+      Object.keys(pos).forEach((u) => {
+        const x = pos[u] || {};
+        const d = Number(x.durationMs) || 0, at = Number(x.positionMs) || 0;
+        ms += d ? Math.min(at, d) : at;
+      });
+      if (!seen && !ms) return;
+      series++;
+      episodes += seen;
+      watchedMs += ms;
+      last = Math.max(last, Number(p.at) || 0);
+      perSource[sourceId] = (perSource[sourceId] || 0) + Math.max(seen, Object.keys(pos).length);
+    });
+    const top = Object.keys(perSource).sort((a, b) => perSource[b] - perSource[a]).slice(0, 3)
+      .map((id) => ({ name: (sourceOf(id) || {}).name || id, n: perSource[id] }));
+    return {
+      library: lib.length,
+      completed: lib.filter((m) => Number(m.status) === 1).length,
+      series, episodes, watchedMs, last, top,
+      sources: visibleSources().length,
+    };
+  }
+
+  function fmtDuration(ms) {
+    const min = Math.round(ms / 60000);
+    if (min < 60) return min + " min";
+    const h = Math.floor(min / 60), m = min % 60;
+    if (h < 24) return h + " h " + m + " min";
+    return Math.floor(h / 24) + " g " + (h % 24) + " h";
+  }
+
+  // Come la «dimensione griglia» di Mangayomi: automatica o un numero fisso di copertine.
+  function renderGridCols() {
+    const cur = Number(Mly.memory.settings.gridCols) || 0;
+    const opts = [0, 4, 5, 6, 7, 8, 9, 10];
+    const body = '<div class="rows">' + opts.map((n) => (
+      '<button type="button" class="row-main" data-focus data-fid="cols-' + n + '"' + (n === cur ? " data-autofocus" : "") + ' data-act="set-cols" data-n="' + n + '"><span class="row-title">' + (n === cur ? "✓ " : "") + (n ? n + " per riga" : "Automatica (come Mangayomi)") + "</span></button>"
+    )).join("") + "</div>";
+    return screen("grid-cols", "Copertine per riga", body, "");
+  }
+
+  function renderStats() {
+    const st = statsData();
+    const card = (value, label) => '<div class="stat"><div class="stat-value">' + esc(String(value)) + '</div><div class="stat-label">' + esc(label) + "</div></div>";
+    const cards = '<div class="stats-grid">' +
+      card(st.library, "Titoli in libreria") + card(st.series, "Serie iniziate") + card(st.episodes, "Episodi visti") +
+      card(fmtDuration(st.watchedMs), "Tempo guardato") + card(st.sources, "Sorgenti installate") +
+      card(st.last ? new Date(st.last).toLocaleDateString(Mly.i18n && Mly.i18n.lang() === "en" ? "en-GB" : "it-IT", { day: "numeric", month: "short", year: "numeric" }) : "—", "Ultima visione") +
+      "</div>";
+    const top = st.top.length ? '<h2 class="stats-head">Sorgenti più guardate</h2><div class="rows">' + st.top.map((t, i) => (
+      '<div class="row-main static' + (i === 0 ? "" : "") + '"><span class="row-title">' + (i + 1) + ". " + esc(t.name) + '</span><span class="row-meta">' + t.n + " episodi</span></div>"
+    )).join("") + "</div>" : '<p class="row-meta">Guarda qualche episodio per vedere qui le sorgenti più usate.</p>';
+    // Un pulsante per far partire il focus e poter tornare indietro col telecomando.
+    const body = cards + top + '<div class="button-row"><button type="button" class="primary" data-focus data-autofocus data-act="stats-refresh">Aggiorna</button></div>';
+    return screen("stats", "Statistiche", body, "");
+  }
+
   function renderAbout() {
-    return screen("about", "Informazioni", '<div class="prose"><p>Mangayomi per TV Samsung. Libreria anime, estensioni e lettore, con la stessa API delle estensioni di Mangayomi.</p><p>Versione 0.3.6</p><p>Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell\'età non vengono aggirati.</p><p>La riproduzione parte alla qualità più alta. Per HLS si usa la variante più alta, non Auto.</p><p>Le estensioni arrivano dal repository indicato in Altro › Sfoglia.</p></div>', "");
+    return screen("about", "Informazioni", '<div class="prose"><p>Mangayomi per TV Samsung. Libreria anime, estensioni e lettore, con la stessa API delle estensioni di Mangayomi.</p><p>Versione 0.3.7</p><p>Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell\'età non vengono aggirati.</p><p>La riproduzione parte alla qualità più alta. Per HLS si usa la variante più alta, non Auto.</p><p>Le estensioni arrivano dai repository indicati in Altro › Sfoglia.</p></div>', "");
   }
 
   function renderPlayerSettings() {
@@ -529,8 +622,24 @@
       '<button type="button" class="row-main" data-focus data-autofocus data-act="toggle-av"><span class="row-title">Samsung AVPlay per MP4</span><span class="row-meta">' + (av ? (on ? "Attivo" : "Disattivo") : "Non disponibile su questo dispositivo. Si usano video HTML e hls.js.") + "</span></button></div>", "");
   }
 
+  // Più repository di estensioni, come in Mangayomi: ogni riga con «Rimuovi», sotto «Aggiungi repository».
   function renderBrowseSettings() {
-    return screen("browse-settings", "Sfoglia", '<div class="prose"><p>Repository anime</p><p class="mono" id="repo-url">' + esc(Mly.memory.settings.repoUrl) + '</p></div><div class="button-row"><button type="button" class="primary" data-focus data-autofocus data-act="edit-repo">Modifica</button></div>', "");
+    const urls = Mly.memory.settings.repoUrls || [];
+    const rows = urls.length ? urls.map((u, i) => (
+      '<div class="row"><span class="row-title pad mono">' + esc(u) + '</span><button type="button" class="text-btn" data-focus data-fid="repo-del-' + i + '"' + (i === 0 ? " data-autofocus" : "") + ' data-act="del-repo" data-i="' + i + '">Rimuovi</button></div>'
+    )).join("") : '<p class="row-meta pad">Nessun repository. Aggiungine uno per vedere le estensioni.</p>';
+    const ck = !!Mly.memory.settings.siteCookies;
+    const cookieRow = '<div class="rows"><button type="button" class="row-main" data-focus data-fid="toggle-cookies" data-act="toggle-cookies"><span class="row-title">Accessi dei siti (sperimentale)</span><span class="row-meta">' + (ck ? "Attivo" : "Disattivo") + ' · La TV ricorda i cookie dei siti, così i login fatti nelle impostazioni di un\'estensione (es. PMVHaven, HypnoTube) possono restare validi. Nessun controllo viene aggirato.</span></button></div>';
+    return screen("browse-settings", "Sfoglia", '<div class="prose"><p>Repository anime</p><p class="row-meta">Indirizzo di un anime_index.json (repository di estensioni Mangayomi).</p></div><div class="rows" data-rownav>' + rows + '</div><div class="button-row"><button type="button" class="primary" data-focus data-fid="repo-add"' + (urls.length ? "" : " data-autofocus") + ' data-act="add-repo">Aggiungi repository</button></div>' + cookieRow, "");
+  }
+
+  function renderLanguage() {
+    const cur = Mly.memory.settings.lang || "auto";
+    const opts = [["auto", "Lingua della TV (automatica)"], ["it", "Italiano"], ["en", "English"]];
+    const body = '<div class="rows">' + opts.map((o) => (
+      '<button type="button" class="row-main" data-focus data-fid="lang-' + o[0] + '"' + (o[0] === cur ? " data-autofocus" : "") + ' data-act="set-lang" data-lang="' + o[0] + '"><span class="row-title">' + (o[0] === cur ? "✓ " : "") + esc(o[1]) + "</span></button>"
+    )).join("") + '</div><p class="row-meta pad">Si applica subito; l\'app si ricarica.</p>';
+    return screen("language", "Lingua", body, "");
   }
 
   function renderCategories() {
@@ -548,7 +657,13 @@
       "</div>";
     const tools = '<div class="top-actions"><button type="button" class="text-btn" data-focus data-fid="src-search" data-act="src-search">Cerca</button><button type="button" class="text-btn" data-focus data-fid="src-filter" data-act="src-filter">Filtri</button><button type="button" class="text-btn" data-focus data-act="open-prefs" data-id="' + esc(frame.sourceId) + '">Impostazioni</button><button type="button" class="text-btn" data-focus data-act="no-webview">Web</button></div>';
     let body = tabs;
-    if (frame.tab === "search") body += '<p class="query-line">Ricerca: ' + esc(frame.query || "(filtri)") + "</p>";
+    if (frame.tab === "search") {
+      const parts = [];
+      if (frame.query) parts.push("«" + frame.query + "»");
+      const changed = filterSummary(frame);
+      if (changed) parts.push(changed);
+      body += '<p class="query-line">Ricerca: ' + esc(parts.join(" · ") || "tutti i risultati") + "</p>";
+    }
     if (frame.loading) body += '<div class="empty"><h2>Caricamento…</h2></div>';
     else if (frame.error) body += '<div class="empty"><h2>Impossibile caricare la sorgente</h2><p>' + esc(frame.error) + '</p><button type="button" class="primary" data-focus data-fid="src-retry" data-autofocus data-act="src-retry">Riprova</button></div>';
     else if (!frame.items.length) body += '<div class="empty"><h2>Nessun risultato</h2></div>';
@@ -559,6 +674,14 @@
     return '<section class="screen" data-screen="source"><header class="top"><h1>' + esc(src.name) + "</h1>" + tools + "</header>" + body + "</section>";
   }
 
+  const DICON = {
+    play: '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>',
+    heart: '<svg viewBox="0 0 24 24"><path d="M16.5 3c-1.74 0-3.41.81-4.5 2.09C10.91 3.81 9.24 3 7.5 3 4.42 3 2 5.42 2 8.5c0 3.78 3.4 6.86 8.55 11.54L12 21.35l1.45-1.32C18.6 15.36 22 12.28 22 8.5 22 5.42 19.58 3 16.5 3zm-4.4 15.55l-.1.1-.1-.1C7.14 14.24 4 11.39 4 8.5 4 6.5 5.5 5 7.5 5c1.54 0 3.04.99 3.57 2.36h1.87C13.46 5.99 14.96 5 16.5 5c2 0 3.5 1.5 3.5 3.5 0 2.89-3.14 5.74-7.9 10.05z"/></svg>',
+    heartOn: '<svg viewBox="0 0 24 24"><path d="M12 21.35l-1.45-1.32C5.4 15.36 2 12.28 2 8.5 2 5.42 4.42 3 7.5 3c1.74 0 3.41.81 4.5 2.09C13.09 3.81 14.76 3 16.5 3 19.58 3 22 5.42 22 8.5c0 3.78-3.4 6.86-8.55 11.54L12 21.35z"/></svg>',
+    label: '<svg viewBox="0 0 24 24"><path d="M17.63 5.84C17.27 5.33 16.67 5 16 5L5 5.01C3.9 5.01 3 5.9 3 7v10c0 1.1.9 1.99 2 1.99L16 19c.67 0 1.27-.33 1.63-.84L22 12l-4.37-6.16z"/></svg>',
+    web: '<svg viewBox="0 0 24 24"><path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm6.93 6h-2.95a15.65 15.65 0 0 0-1.38-3.56A8.03 8.03 0 0 1 18.93 8zM12 4.04c.83 1.2 1.48 2.53 1.91 3.96h-3.82c.43-1.43 1.08-2.76 1.91-3.96zM4.26 14C4.1 13.36 4 12.69 4 12s.1-1.36.26-2h3.38c-.08.66-.14 1.32-.14 2s.06 1.34.14 2H4.26zm.82 2h2.95c.32 1.25.78 2.45 1.38 3.56A7.99 7.99 0 0 1 5.08 16zm2.95-8H5.08a7.99 7.99 0 0 1 4.33-3.56A15.65 15.65 0 0 0 8.03 8zM12 19.96c-.83-1.2-1.48-2.53-1.91-3.96h3.82c-.43 1.43-1.08 2.76-1.91 3.96zM14.34 14H9.66c-.09-.66-.16-1.32-.16-2s.07-1.35.16-2h4.68c.09.65.16 1.32.16 2s-.07 1.34-.16 2zm.25 5.56c.6-1.11 1.06-2.31 1.38-3.56h2.95a8.03 8.03 0 0 1-4.33 3.56zM16.36 14c.08-.66.14-1.32.14-2s-.06-1.34-.14-2h3.38c.16.64.26 1.31.26 2s-.1 1.36-.26 2h-3.38z"/></svg>',
+    migrate: '<svg viewBox="0 0 24 24"><path d="M6.99 11L3 15l3.99 4v-3H14v-2H6.99v-3zM21 9l-3.99-4v3H10v2h7.01v3L21 9z"/></svg>',
+  };
   function renderDetail(frame) {
     const src = sourceOf(frame.sourceId) || {};
     const manga = frame.manga || frame.preview || {};
@@ -570,31 +693,40 @@
     const inLib = !!findLibrary(frame.sourceId, frame.link);
     const genres = (manga.genre || []).filter(Boolean).slice(0, 8);
     const meta = [statusName(manga.status), chapters.length ? chapters.length + " episodi" : "", src.name || "", manga.author || ""].filter(Boolean).join("   ·   ");
+    // Come in Mangayomi: un pulsante grande per guardare e sotto una fila di azioni
+    // con icona. Solo quelle che sulla TV funzionano davvero: Tracciamento,
+    // Consigliati e Ordine di visione richiedono un login da browser e sono tolti.
+    const act = (id, label, icon, fid) => '<button type="button" class="dact" data-focus data-fid="' + fid + '" data-act="' + id + '"><span class="dact-icon">' + icon + '</span><span class="dact-label">' + esc(label) + "</span></button>";
     const actions = [
-      ['<button type="button" class="action primary-action" data-focus data-autofocus data-fid="detail-play" data-act="detail-play">' + esc(choice.label) + "</button>", true],
-      ['<button type="button" class="action" data-focus data-act="toggle-lib">' + (inLib ? "In libreria" : "Aggiungi alla libreria") + "</button>", true],
-      ['<button type="button" class="action" data-focus data-act="detail-cats">Categorie</button>', true],
-      ['<button type="button" class="action" data-focus data-act="detail-track">Tracciamento</button>', true],
-      ['<button type="button" class="action" data-focus data-act="no-webview">Apri nel browser</button>', true],
-      ['<button type="button" class="action" data-focus data-act="detail-rec">Consigliati</button>', true],
-      ['<button type="button" class="action" data-focus data-act="detail-order">Ordine di visione</button>', true],
-      ['<button type="button" class="action" data-focus data-act="detail-migrate">Migra</button>', true],
-    ];
+      act("toggle-lib", inLib ? "In libreria" : "Aggiungi alla libreria", inLib ? DICON.heartOn : DICON.heart, "detail-lib"),
+      inLib ? act("detail-cats", "Categorie", DICON.label, "detail-cats") : "",
+      act("no-webview", "Web", DICON.web, "detail-web"),
+      inLib ? act("detail-migrate", "Migra", DICON.migrate, "detail-migrate") : "",
+    ].join("");
     const cover = Mly.grid.thumb(image);
-    const left = '<div class="detail-hero">' + (cover ? '<img class="detail-cover" alt="" width="150" height="220" src="' + esc(cover) + '">' : '<div class="detail-cover"></div>') + '<div><h1>' + esc(name) + "</h1><p class=\"meta\">" + esc(meta) + "</p>" +
-      (genres.length ? '<div class="genres">' + genres.map((g) => "<span>" + esc(g) + "</span>").join("") + "</div>" : "") +
-      "</div></div><p class=\"desc\">" + esc(manga.description || "") + "</p><div class=\"actions\">" + actions.map((a) => a[0]).join("") + "</div>";
+    // I tag si possono premere: cercano quel genere nella sorgente, come in Mangayomi.
+    const tags = genres.length ? '<div class="genres">' + genres.map((g) => '<button type="button" class="tag" data-focus data-act="detail-tag" data-tag="' + esc(g) + '">' + esc(g) + "</button>").join("") + "</div>" : "";
+    const left = '<div class="detail-hero">' + (cover ? '<img class="detail-cover" alt="" width="220" height="320" src="' + esc(cover) + '">' : '<div class="detail-cover"></div>') + '<div class="detail-info"><h1>' + esc(name) + "</h1><p class=\"meta\">" + esc(meta) + "</p>" + tags + "</div></div>" +
+      '<button type="button" class="primary-action" data-focus data-autofocus data-fid="detail-play" data-act="detail-play">' + DICON.play + "<span>" + esc(choice.label) + "</span></button>" +
+      '<div class="dactions">' + actions + "</div>" +
+      "<p class=\"desc\">" + esc(manga.description || "") + "</p>";
     let right;
     if (frame.loading && !chapters.length) right = '<div class="empty"><h2>Caricamento…</h2></div>';
     else if (frame.error && !chapters.length) right = '<div class="empty"><p>' + esc(frame.error) + '</p><button type="button" class="text-btn" data-focus data-act="detail-refresh">Riprova</button></div>';
     else if (!chapters.length) right = '<div class="empty"><h2>Nessun episodio</h2></div>';
-    else right = '<div class="eps-head">Episodi' + (choice.watchedCount ? " · " + choice.watchedCount + " visti" : "") + '</div><div class="vgrid-host" data-mount="episodes" data-focus data-grid="1" tabindex="0"></div>';
+    else {
+      const oldest = epSortOf(frame) === "oldest";
+      right = '<div class="eps-head"><span>Episodi' + (choice.watchedCount ? " · " + choice.watchedCount + " visti" : "") + '</span>' +
+        '<button type="button" class="text-btn eps-sort" data-focus data-fid="eps-sort" data-down="detail-eps" data-act="eps-sort">' + (oldest ? "↑ Dal primo" : "↓ Dal più recente") + "</button></div>" +
+        '<div class="vgrid-host" data-mount="episodes" data-focus data-fid="detail-eps" data-up="eps-sort" data-grid="1" tabindex="0"></div>';
+    }
     return '<section class="screen detail-screen" data-screen="detail"><div class="detail-left">' + left + '</div><div class="detail-right">' + right + "</div></section>";
   }
 
   // Player overlay as in Mangayomi: title and episode on top, seek bar with
   // times, then the control row (episodes, play/pause, skip intro, quality, subtitles).
   const ICON = {
+    lock: '<svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>',
     prev: '<svg viewBox="0 0 24 24"><path d="M6 6h2v12H6zM9.5 12l8.5 6V6z"/></svg>',
     next: '<svg viewBox="0 0 24 24"><path d="M16 6h2v12h-2zM6 18l8.5-6L6 6z"/></svg>',
     back10: '<svg viewBox="0 0 24 24"><path d="M11 18V6l-8.5 6zM11.5 12l8.5 6V6z"/></svg>',
@@ -610,11 +742,14 @@
       '<div class="player-top"><div class="player-name">' + esc(frame.title) + '</div><div class="player-ep">' + esc(frame.episodeName) + "</div></div>" +
       '<div id="player-center" class="player-center" hidden>' + ICON.play + "</div>" +
       '<div id="player-wait" class="player-wait" role="status" aria-label="Caricamento"></div>' +
+      '<div id="player-lock" class="lock-pop" hidden></div>' +
+      '<div id="player-next" class="next-pop" hidden><div class="next-title">Prossimo episodio tra <span class="next-count">10</span> s</div><div class="next-keys"><span class="skip-key">OK</span> subito · <span class="skip-key">Indietro</span> annulla</div></div>' +
+      '<button type="button" id="player-skip" class="skip-pop" data-act="player-skip" hidden><span class="skip-label">Salta sigla</span><span class="skip-key">OK</span></button>' +
       '<p id="player-error" class="player-error" hidden></p>' +
       '<div class="player-bottom">' +
       '<div class="seek-row"><span id="player-cur" class="player-t">0:00</span><div class="track"><div id="player-bar" class="track-fill"></div><div id="player-knob" class="track-knob"></div></div><span id="player-dur" class="player-t">0:00</span></div>' +
       '<div id="player-ctl" class="ctl-row"><div class="ctl-group">' +
-      b("prev", "Episodio precedente", ICON.prev, " icon-only") + b("back10", "Indietro 10 s", ICON.back10, " icon-only") +
+      b("lock", "Blocca i tasti", ICON.lock, " icon-only") + b("prev", "Episodio precedente", ICON.prev, " icon-only") + b("back10", "Indietro 10 s", ICON.back10, " icon-only") +
       b("play", "Pausa", ICON.pause, " icon-only big") + b("fwd10", "Avanti 10 s", ICON.fwd10, " icon-only") + b("next", "Episodio successivo", ICON.next, " icon-only") +
       '</div><div class="ctl-group">' +
       b("skip", "+85 s  Salta intro", "", " pill-btn") + b("quality", "Video", "", " pill-btn") + b("subs", "Sottotitoli", "", " pill-btn") +
@@ -739,9 +874,53 @@
       document.getElementById("app").appendChild(el);
     }
     const blocks = (frame.filterDraft || []).map((f, i) => filterBlock(f, i)).join("");
+    // Dopo aver scelto un'opzione il pannello si ridisegna: si resta sulla stessa
+    // opzione e alla stessa altezza, invece di saltare su «Cerca».
+    const oldScroll = el.querySelector(".filter-scroll");
+    const scrollTop = oldScroll ? oldScroll.scrollTop : 0;
+    const keep = root.filterKeep;
+    root.filterKeep = null;
     el.innerHTML = '<div class="sheet filter-sheet"><h2>Filtri</h2><div class="filter-scroll">' + (blocks || "<p>Questa sorgente non ha filtri.</p>") + '</div><div class="button-row"><button type="button" class="text-btn" data-focus data-act="filter-reset">Azzera</button><button type="button" class="primary" data-focus data-autofocus data-act="filter-apply">Cerca</button></div></div>';
-    Mly.nav.focus(el.querySelector("[data-autofocus]"));
+    const scroller = el.querySelector(".filter-scroll");
+    if (scroller && scrollTop) scroller.scrollTop = scrollTop;
+    Mly.nav.focus((keep && el.querySelector(keep)) || el.querySelector("[data-autofocus]"));
   }
+  // Riassunto dei filtri cambiati rispetto a quelli predefiniti della sorgente,
+  // per la riga «Ricerca: …» (es. «Ordine: Ultime aggiunte · Genere: Azione»).
+  function filterSummary(frame) {
+    const now = frame.filters || [];
+    if (!now.length) return "";
+    let base = [];
+    try { base = Mly.ext.getFilters(frame.sourceId) || []; } catch (e) { base = []; }
+    const out = [];
+    now.forEach((f, i) => {
+      const d = base[i] || {};
+      const type = f.type_name || "";
+      if (type === "SelectFilter") {
+        if (f.state !== (d.state || 0)) { const o = (f.values || [])[f.state]; if (o) out.push(f.name + ": " + o.name); }
+      } else if (type === "TextFilter") {
+        if (f.state && f.state !== d.state) out.push(f.name + ": " + f.state);
+      } else if (type === "CheckBoxFilter") {
+        if (!!f.state !== !!d.state) out.push((f.state ? "" : "no ") + f.name);
+      } else if (type === "TriStateFilter") {
+        if ((f.state || 0) !== (d.state || 0)) out.push((f.state === 2 ? "senza " : "") + f.name);
+      } else if (type === "SortFilter") {
+        const st = f.state || {}, ds = d.state || {};
+        if (st.index !== ds.index || st.ascending !== ds.ascending) {
+          const o = (f.values || [])[st.index || 0];
+          out.push((f.name || "Ordine") + ": " + ((o && (o.name || o)) || "") + (st.ascending ? " ↑" : " ↓"));
+        }
+      } else if (type === "GroupFilter") {
+        const on = (f.state || []).filter((x, j) => {
+          const ds = ((d.state || [])[j] || {}).state;
+          return x && x.state && x.state !== ds;
+        }).map((x) => (x.state === 2 ? "senza " : "") + x.name);
+        if (on.length) out.push(f.name + ": " + on.join(", "));
+      }
+    });
+    return out.join(" · ");
+  }
+
   function filterBlock(f, i) {
     const type = f.type_name || "";
     if (type === "HeaderFilter") return '<p class="filter-note">' + esc(f.name || "") + "</p>";
@@ -790,13 +969,26 @@
     root.extError = "";
     if (!top() && root.tab === "browse") render();
     try {
-      root.extIndex = await Mly.ext.fetchIndex(Mly.memory.settings.repoUrl);
+      root.extIndex = await Mly.ext.fetchIndex(Mly.memory.settings.repoUrls);
       root.extLoading = false;
     } catch (e) {
       root.extLoading = false;
       root.extError = e.message || String(e);
     }
     if (!top() && root.tab === "browse" && root.browse === "extensions") render();
+  }
+
+  // Ricerca nella sorgente partendo da un tag del titolo (il genere come testo).
+  function openSourceSearch(id, text) {
+    const frame = {
+      name: "source", sourceId: String(id), tab: "search", items: [], page: 1, hasNext: false,
+      loading: true, error: "", query: text, filters: null, filterDraft: null, showFilters: false,
+      focusIndex: 0, supportsLatest: true,
+    };
+    try { frame.supportsLatest = Mly.ext.supportsLatest(id); } catch (e) { frame.supportsLatest = true; }
+    stack.push(frame);
+    render();
+    loadSource(frame, false);
   }
 
   function openSource(id) {
@@ -995,6 +1187,12 @@
     root.dialog = { title, body };
     paintDialog();
   }
+  function exitApp() {
+    try {
+      if (window.tizen && tizen.application) { tizen.application.getCurrentApplication().exit(); return; }
+    } catch (e) {}
+    try { window.close(); } catch (e) {}
+  }
   function openConfirm(title, body, okLabel, onOk) {
     rememberFocus();
     root.dialog = { title, body, confirm: true, okLabel, onOk };
@@ -1071,11 +1269,17 @@
     Mly.player.attach(frame);
   }
 
-  async function checkUpdates() {
+  async function checkUpdates(opts) {
     if (root.checking) return;
     root.checking = true;
     if (!top() && root.tab === "updates") render();
+    const auto = !!opts && opts.auto;
     for (const item of Mly.memory.library) {
+      if (auto) {
+        // In sottofondo: una serie alla volta, con una pausa, e mai durante un video.
+        while (Mly.player.isOpen()) await new Promise((r) => setTimeout(r, 5000));
+        await new Promise((r) => setTimeout(r, 400));
+      }
       try {
         const manga = await Mly.ext.call(item.sourceId, "getDetail", (e) => e.getDetail(item.link));
         const chapters = chaptersOf(manga);
@@ -1200,15 +1404,54 @@
     if (act === "reload-index") { root.extIndex = null; ensureIndex(); return; }
     if (act === "noop") return;
     if (act === "push") { stack.push({ name: el.dataset.screen }); render(); return; }
+    if (act === "stats-refresh") { render(); return; }
+    if (act === "player-skip") { Mly.player.doSkip(); Mly.player.paintChrome(); return; }
+    if (act === "set-cols") {
+      Mly.memory.settings.gridCols = Number(el.dataset.n) || 0;
+      Mly.db.saveSettings();
+      render();
+      const f = document.querySelector('[data-fid="cols-' + Mly.memory.settings.gridCols + '"]');
+      if (f) Mly.nav.focus(f);
+      return;
+    }
     if (act === "toggle-av") { Mly.memory.settings.useAvPlay = !Mly.memory.settings.useAvPlay; Mly.db.saveSettings(); render(); return; }
-    if (act === "edit-repo") {
-      openOsk({ title: "Repository anime", value: Mly.memory.settings.repoUrl, apply: (value) => {
-        Mly.memory.settings.repoUrl = value.trim() || Mly.memory.settings.repoUrl;
+    if (act === "add-repo") {
+      openOsk({ title: "Repository anime", value: "https://", apply: (value) => {
+        const url = value.trim();
+        if (!/^https?:\/\/\S+$/i.test(url)) { openDialog("Repository anime", "Indirizzo di un anime_index.json (repository di estensioni Mangayomi)."); return; }
+        const list = Mly.memory.settings.repoUrls || [];
+        if (!list.includes(url)) list.push(url);
+        Mly.memory.settings.repoUrls = list;
         Mly.db.saveSettings();
-        const node = document.getElementById("repo-url");
-        if (node) node.textContent = Mly.memory.settings.repoUrl;
         root.extIndex = null;
+        render();
       } });
+      return;
+    }
+    if (act === "del-repo") {
+      const list = (Mly.memory.settings.repoUrls || []).slice();
+      list.splice(Number(el.dataset.i), 1);
+      Mly.memory.settings.repoUrls = list;
+      Mly.db.saveSettings();
+      root.extIndex = null;
+      render();
+      const next = document.querySelector('[data-fid="repo-del-' + Math.min(Number(el.dataset.i), list.length - 1) + '"]') || document.querySelector('[data-fid="repo-add"]');
+      if (next) Mly.nav.focus(next);
+      return;
+    }
+    if (act === "toggle-cookies") {
+      Mly.memory.settings.siteCookies = !Mly.memory.settings.siteCookies;
+      Mly.db.saveSettings();
+      render();
+      const t = document.querySelector('[data-fid="toggle-cookies"]');
+      if (t) Mly.nav.focus(t);
+      return;
+    }
+    if (act === "set-lang") {
+      Mly.memory.settings.lang = el.dataset.lang;
+      Mly.db.saveSettings();
+      // Ricarica: testi della barra laterale e schermate si ridisegnano nella lingua scelta.
+      setTimeout(() => location.reload(), 150);
       return;
     }
     if (act === "add-cat") {
@@ -1255,8 +1498,12 @@
       return;
     }
     if (act === "src-filter") {
-      try { frame.filterDraft = Mly.ext.getFilters(frame.sourceId); }
-      catch (e) { frame.filterDraft = []; }
+      // Riaprendo i Filtri si ritrovano le scelte già applicate, non quelle predefinite.
+      if (frame.filters && frame.filters.length) frame.filterDraft = JSON.parse(JSON.stringify(frame.filters));
+      else {
+        try { frame.filterDraft = Mly.ext.getFilters(frame.sourceId); }
+        catch (e) { frame.filterDraft = []; }
+      }
       frame.showFilters = true;
       root.filtersFor = frame;
       paintFilters();
@@ -1277,6 +1524,9 @@
       catch (e) { frame.filterDraft = []; }
       paintFilters();
       return;
+    }
+    if (/^(fopt|ftext|fsort|fsort-dir|fcheck|ftri|fgroup)$/.test(act)) {
+      root.filterKeep = '#filters [data-act="' + act + '"][data-fi="' + el.dataset.fi + '"]' + (el.dataset.j != null ? '[data-j="' + el.dataset.j + '"]' : "");
     }
     if (act === "fopt") {
       const f = frame.filterDraft[Number(el.dataset.fi)];
@@ -1333,6 +1583,19 @@
     if (act === "toggle-lib") { toggleLibrary(frame); return; }
     if (act === "detail-refresh") { frame.loading = true; render(); refreshDetail(frame); return; }
     if (act === "detail-cats") { openCategoryAssign(frame); return; }
+    if (act === "eps-sort") {
+      const key = seriesKey(frame.sourceId, frame.link);
+      const m = Mly.memory.settings.epSort || {};
+      if (epSortOf(frame) === "oldest") delete m[key]; else m[key] = "oldest";
+      Mly.memory.settings.epSort = m;
+      Mly.db.saveSettings();
+      frame.epFocus = 0;
+      render();
+      const b = document.querySelector('[data-fid="eps-sort"]');
+      if (b) Mly.nav.focus(b);
+      return;
+    }
+    if (act === "detail-tag") { openSourceSearch(frame.sourceId, el.dataset.tag || ""); return; }
     if (act === "detail-track") { openDialog("Tracciamento", "Il tracciamento richiede un account collegato da browser. Questa app per TV non ha WebView, quindi i tracker non si possono collegare qui."); return; }
     if (act === "detail-rec" || act === "detail-order") { openDialog("Non disponibile sulla TV", "Consigliati e ordine di visione usano tracker online che richiedono un accesso da browser, che questa app per TV non può aprire."); return; }
     if (act === "detail-migrate") {
@@ -1348,7 +1611,13 @@
     if (act === "no-webview") {
       const src = frame ? sourceOf(frame.sourceId) : null;
       const url = frame && frame.link ? absUrl(src && src.baseUrl, frame.link) : (src && src.baseUrl) || "";
-      openDialog("Nessuna WebView", "Questa TV non ha WebView. Apri la pagina da telefono o computer" + (url ? ": " + url : "."));
+      const fallback = () => openDialog("Nessuna WebView", "Questa TV non ha WebView. Apri la pagina da telefono o computer" + (url ? ": " + url : "."));
+      // Sulla TV la pagina si apre nel browser di sistema (Samsung Internet). Serve solo a
+      // vederla: il login fatto lì resta nel browser e non sblocca le estensioni.
+      if (!url || !/^https?:/i.test(url) || !(window.tizen && tizen.application && tizen.ApplicationControl)) { fallback(); return; }
+      try {
+        tizen.application.launchAppControl(new tizen.ApplicationControl("http://tizen.org/appcontrol/operation/view", url, null, null, null), null, () => {}, fallback);
+      } catch (e) { fallback(); }
       return;
     }
     if (act === "mig-title") { root.migrate.entryId = el.dataset.id; root.migrate.step = 1; render(); return; }
@@ -1492,7 +1761,17 @@
       root.migrate.step -= 1;
       root.migrate.loading = false;
       render();
+      return;
     }
+    // Schermata principale: da un'altra scheda si torna alla Libreria; dalla
+    // Libreria Indietro chiede se uscire dall'app (focus su «Annulla»).
+    if (root.tab !== "library") {
+      selectTab("library", false);
+      const rail = document.querySelector('.rail-btn[data-tab="library"]');
+      if (rail) Mly.nav.focus(rail);
+      return;
+    }
+    openConfirm("Esci", "Vuoi uscire da Mangayomi?", "Esci", exitApp);
   }
 
   function onKey(e) {
@@ -1554,6 +1833,20 @@
     }
   }
 
+  // Aggiornamento automatico della Libreria: 20 s dopo l'avvio (l'app si apre
+  // subito), al massimo ogni 6 ore, in sottofondo.
+  function scheduleAutoUpdate(delayMs) {
+    setTimeout(() => {
+      try {
+        if (!Mly.memory.library.length) return;
+        const last = Number(localStorage.getItem("mly.lastAutoUpdate")) || 0;
+        if (Date.now() - last < 6 * 3600 * 1000) return;
+        localStorage.setItem("mly.lastAutoUpdate", String(Date.now()));
+      } catch (e) { return; }
+      checkUpdates({ auto: true });
+    }, delayMs == null ? 20000 : delayMs);
+  }
+
   function start() {
     const rail = ["library", "updates", "history", "browse", "more"].map((id) => {
       const label = { library: "Libreria", updates: "Aggiornamenti", history: "Cronologia", browse: "Sfoglia", more: "Altro" }[id];
@@ -1571,7 +1864,8 @@
     } catch (e) {}
     document.getElementById("app").addEventListener("click", onClick);
     selectTab("library", false);
+    scheduleAutoUpdate();
   }
 
-  Mly.ui = { start, selectTab, back, rememberPlayback, playEpisode, qualityRows, nextIndex, prevIndex, chronoOrder, epNumber, resumeChoice, isAdult: () => adult };
+  Mly.ui = { start, selectTab, back, rememberPlayback, playEpisode, qualityRows, nextIndex, prevIndex, chronoOrder, epNumber, resumeChoice, isAdult: () => adult, scheduleAutoUpdate };
 })();

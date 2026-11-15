@@ -2,12 +2,12 @@
 
 Questo è l'unico file con le modifiche di ogni versione e lo stato attuale. `docs/STATO_E_PIANO.md` resta come diario storico dei primi passi (ambiente, firma, installazione).
 
-## Stato attuale (v0.3.6, ramo `cursor/v035-tizen-5ab3`, PR #1)
+## Stato attuale (v0.3.7, ramo `claude/v037-licenza-lingua-repo`)
 
-- `main` è la v0.3.4. La v0.3.6 è passata nei test headless ma **non è ancora stata installata né provata sulla TV**: il pacchetto va rifirmato da questa versione.
+- `main` è la v0.3.6. La v0.3.7 è su un ramo a parte e passa i test headless, ma **non è ancora stata installata né provata sulla TV**. Va in main solo dopo l'approvazione. Installazione: `docs/INSTALLAZIONE.md`.
 - **Test:** `tools/run-tests.sh` dalla radice del repository. Servono node 20+, Chrome o Chromium (variabile `CHROME`) e Internet: i test usano il repository delle estensioni e i siti veri.
   - Il server locale è `tools/servefull.mjs`, sulla porta 8770 con la stessa CSP di config.xml. Chrome headless gira con CDP sulla porta 9444.
-  - I test girano in quest'ordine: `v032test`, `uninstalltest`, `playertest`, `navtest`.
+  - I test girano in quest'ordine: `v032test`, `uninstalltest`, `playertest`, `navtest`. Chrome parte in italiano (`--lang=it-IT`), perché la lingua dell'app segue quella di sistema.
   - `javtest` e `hypnotest` sono facoltativi: da un server quei siti rispondono con un controllo del browser o con l'age-gate.
 - **Limiti noti:**
   - Questa TV non ha WebView: Cookie, Referer e User-Agent non si possono impostare. Cloudflare, anti-bot, paywall e verifiche dell'età non vengono aggirati.
@@ -103,3 +103,94 @@ Le correzioni principali sono nei commit 990aa14, 9db8e78 e 1ff1ddc di questo ra
   I grandi vuoti visti sulla TV nella v0.3.5 erano dovuti a #4 (celle non dimensionate dalla seconda griglia in poi), ora corretto.
 - **Documentazione**: `docs/V035_STATO.md` è stato tolto. Ripeteva questo file: le parti ancora utili (test e limiti) sono in «Stato attuale» qui in cima.
 - Test headless: 123 PASS, 0 FAIL.
+
+# v0.3.7 (14/11/2026), su un ramo a parte, non ancora installata
+
+Preparazione per proporre l'app al progetto Mangayomi.
+
+- **Licenza:** `LICENSE` (Apache-2.0, come Mangayomi) e `NOTICE` con le componenti di terze parti: icona Aniyomi, hls.js e l'API delle estensioni di Mangayomi.
+- **Lingua** (nuovo `js/i18n.js`):
+  - Di serie la lingua è quella **della TV**: se la TV è in italiano l'app resta in italiano, altrimenti va in inglese.
+  - In Altro › Lingua si sceglie «Lingua della TV (automatica)», Italiano o English; l'app si ricarica.
+  - Come funziona: l'interfaccia è scritta in italiano, e in inglese i testi noti vengono sostituiti mentre compaiono (dizionario e alcuni modelli per i testi con numeri). Titoli e descrizioni delle estensioni restano come sono.
+- **Più repository di estensioni**, come in Mangayomi:
+  - In Altro › Sfoglia c'è l'elenco dei repository (`settings.repoUrls`), con «Rimuovi» su ogni riga e «Aggiungi repository».
+  - Le installazioni vecchie con un solo `repoUrl` vengono convertite da sole.
+  - Le estensioni con lo stesso id si tengono una volta sola, dal primo repository. Se un repository non risponde, quelle degli altri restano.
+- **Pulsante «Web»:**
+  - Sulla TV apre la pagina nel browser di sistema (`tizen.application.launchAppControl`, operazione view; nuovo privilegio `application.launch`).
+  - Serve solo a vedere la pagina: il login fatto nel browser non passa all'app.
+  - Fuori dalla TV, o se il browser non si apre, compare il messaggio di prima.
+- **Guida all'installazione:** `docs/INSTALLAZIONE.md` (italiano), più un riassunto in inglese nel README.
+- **Test:** `navtest.mjs` controlla l'elenco dei repository, che con un repository che non risponde restino gli altri, la scelta della lingua, l'italiano automatico e la traduzione in inglese. Totale: 128 PASS, 0 FAIL (poi 132 con gli accessi dei siti).
+- Versione 0.3.7 in config.xml e in Informazioni.
+- **Accessi dei siti (sperimentale):**
+  - Nuova impostazione in Altro › Sfoglia, attiva di serie (`settings.siteCookies`).
+  - Le richieste delle estensioni usano `credentials: "include"`: il motore della TV può conservare e rimandare i cookie dei siti, così il login fatto nelle impostazioni di PMVHaven o HypnoTube può restare valido.
+  - Se una richiesta con i cookie viene rifiutata, per esempio per CORS, per quel sito si torna da soli a `omit`, come prima.
+  - Nessun controllo viene aggirato: è il login normale del sito con l'account di chi usa l'app.
+  - **Da verificare sulla TV.** In Chromium sul PC il cookie di un altro sito non viene rimandato (SameSite=Lax di default; `navtest` lo riporta come «INFO»). Un'app Tizen installata può comportarsi diversamente.
+  - Le estensioni hanno bisogno di PMVHaven 1.6.3 e HypnoTube 1.4.5 (adam72881/mangayomi-anime-extensions PR #9), che riconoscono il login anche quando il cookie non si legge.
+- Test headless: 132 PASS, 0 FAIL.
+- **Filtri** (segnalato da Adam):
+  - Scegliendo un'opzione (es. «Ultime aggiunte») il pannello si ridisegna ma il focus resta su quell'opzione, alla stessa altezza; prima saltava su «Cerca».
+  - Riaprendo Filtri si ritrovano le scelte già applicate, non quelle predefinite. «Azzera» le riporta come all'inizio.
+  - Due test nuovi in `navtest.mjs`. Totale: 134 PASS, 0 FAIL.
+- **Riga «Ricerca»:** invece di «(filtri)» mostra cosa è cambiato rispetto ai filtri predefiniti della sorgente, per esempio «Ricerca: Ordine: Ultime aggiunte · Genere: Azione». Se c'è anche un testo cercato compare tra «». Senza testo né filtri cambiati dice «tutti i risultati». Tradotta anche in inglese. Totale test: 135 PASS, 0 FAIL.
+- **Scheda del titolo in stile Mangayomi** (chiesta da Adam):
+  - copertina più grande (220×320), titolo, dettagli e **tag che si possono premere**: cercano quel genere nella sorgente;
+  - un pulsante grande «Inizia/Riprendi» e sotto una fila di azioni con icona, solo quelle che funzionano: Aggiungi alla libreria / In libreria e Web, più Categorie e Migra solo se il titolo è in libreria;
+  - tolti Tracciamento, Consigliati e Ordine di visione: sulla TV mostravano solo «non disponibile»;
+  - episodi molto più grandi: righe da 128 px con miniatura 192×108 e testo più grande (`rowH` per griglia in `js/grid.js`);
+  - tre test nuovi in `navtest.mjs`. Totale: 138 PASS, 0 FAIL.
+- **Elenco degli episodi dall'alto** (segnalato da Adam): come in Mangayomi, l'elenco parte dal primo in alto, cioè l'ultimo uscito. Prima si apriva già spostato sull'episodio suggerito (es. il 10) e quelli più recenti restavano nascosti sopra. L'episodio da guardare resta sul pulsante «Inizia/Riprendi/Continua». In `js/grid.js` ci sono `length` e `jump(i)` per spostarsi su un elemento (usati dai test per scendere all'Ep. 1). Totale: 139 PASS, 0 FAIL.
+- **Interfaccia più grande per la TV** (segnalato da Adam: «c'è tanto spazio libero»):
+  - barra laterale più larga (170 px) con icone e scritte più grandi;
+  - titoli delle schermate a 46 px;
+  - righe di Altro, Sfoglia e impostazioni più alte, con testo a 28 px;
+  - pulsanti, schede e messaggi «vuoto» più grandi;
+  - testo di base a 22 px.
+
+  Sono solo regole CSS in fondo a `css/app.css`. Totale test: 139 PASS, 0 FAIL.
+- **Altro › Statistiche** (nuova):
+  - Sei riquadri: titoli in libreria, serie iniziate, episodi visti, tempo guardato, sorgenti installate, ultima visione. Sotto, le tre sorgenti più guardate.
+  - I dati sono quelli salvati sulla TV (libreria e progressi). Con la modalità adulti nascosta, le sorgenti per adulti non vengono contate.
+  - «Aggiorna» ricalcola. Tradotta anche in inglese.
+- **Controllo delle voci già presenti in Altro**, con nuovi test che usano il D-pad e la tastiera a schermo; funzionano tutte:
+  - Categorie: crea, assegna a un titolo, filtra la Libreria, rimuovi (anche dai titoli);
+  - Lettore: interruttore AVPlay salvato;
+  - Sfoglia: repository e accessi dei siti;
+  - Lingua;
+  - Informazioni: versione 0.3.7.
+- Totale test: 146 PASS, 0 FAIL.
+- **Altro › Copertine per riga** (nuova), come la «dimensione griglia» di Mangayomi:
+  - «Automatica (come Mangayomi)», con copertine larghe al massimo 150 dp, oppure da 4 a 10 per riga;
+  - vale per Libreria, sorgenti e ricerca (`settings.gridCols`, letto da `measure()` in `js/grid.js`);
+  - quattro test nuovi. Totale: 150 PASS, 0 FAIL.
+- **Pulsante a comparsa «Salta sigla» / «Salta finale»** (AniSkip), chiesto da Adam:
+  - All'avvio di un episodio il lettore cerca il numero MyAnimeList su AniList partendo dal titolo («(ITA)», «Sub ITA»… vengono tolti; il numero resta in memoria sulla TV). Poi chiede ad AniSkip (`api.aniskip.com`, database della community) i tempi di sigla iniziale e finale di quell'episodio.
+  - Ogni richiesta ha un tempo massimo di 4 s. Se non c'è risposta, o i tempi non ci sono, non cambia niente e resta «+85 s».
+  - Durante la sigla compare in basso a destra «Salta sigla · OK» (o «Salta finale»). OK salta alla fine della sigla senza mettere in pausa, poi il pulsante sparisce. Nessun salto automatico.
+  - Le sorgenti per adulti sono escluse: i loro titoli non vengono mandati ad AniList.
+  - Test: ricerca vera (One Piece (ITA) → MyAnimeList 21 → sigla dell'ep. 1000 da 0:14 a 2:04), comparsa del pulsante, salto con OK, scomparsa. Totale: 154 PASS, 0 FAIL.
+- **Ordina episodi** (chiesto da Adam):
+  - Accanto al titolo «Episodi» c'è un pulsante «↓ Dal più recente» / «↑ Dal primo». Lo stesso pulsante passa da un ordine all'altro, e la scelta resta per quella serie (`settings.epSort`).
+  - L'ordine vero viene ricavato dai numeri o dalle date degli episodi, quindi funziona anche con sorgenti che li elencano al contrario. Premendo un episodio parte sempre quello giusto (`item.index`).
+  - Col D-pad: Su dalla lista va sul pulsante, Giù dal pulsante torna alla lista.
+  - Quattro test nuovi. Totale: 158 PASS, 0 FAIL.
+- **Indietro sulla schermata principale** (chiesto da Adam): da Aggiornamenti, Cronologia, Sfoglia o Altro si torna prima alla Libreria. Dalla Libreria compare «Esci – Vuoi uscire da Mangayomi?», con il focus su «Annulla»; «Esci» chiude l'app (`tizen.application.getCurrentApplication().exit()`).
+- **Prossimo episodio automatico**:
+  - parte **solo alla fine vera del file**, quindi dopo eventuali scene dopo la sigla finale;
+  - compare un conto alla rovescia di 10 s, «Prossimo episodio tra N s»: OK lo fa partire subito, Indietro o una freccia lo annullano e si resta nel lettore;
+  - «Salta finale» (AniSkip) porta alla fine della sigla, non al prossimo episodio, così le scene dopo i titoli non si perdono.
+- **Numeri sulle copertine, solo in Libreria**: episodi non ancora visti, come in Mangayomi. Nelle sorgenti non compaiono.
+- **Aggiornamento automatico della Libreria**:
+  - parte 20 s dopo l'avvio (l'app si apre subito), al massimo ogni 6 ore;
+  - una serie alla volta con una pausa tra l'una e l'altra, e mai mentre è aperto il lettore;
+  - i nuovi episodi compaiono in Aggiornamenti come col pulsante «Controlla aggiornamenti».
+- Test nuovi in `navtest.mjs` e `playertest.mjs`. Totale: 167 PASS, 0 FAIL.
+- **Lucchetto nel lettore** (chiesto da Adam):
+  - Nella barra dei comandi, a sinistra, c'è il pulsante 🔒 «Blocca i tasti». Con il lucchetto attivo frecce, OK e tasti di salto non fanno niente, così non si va avanti o indietro per sbaglio.
+  - Ogni tasto mostra in alto «🔒 Bloccato · premi OK due volte per sbloccare». Si sblocca con due OK entro 1,5 s.
+  - Play/Pausa del telecomando funziona ancora. Il lucchetto si toglie chiudendo il lettore.
+  - Test: con il lucchetto Destra non va avanti, un solo OK non sblocca, due OK sbloccano. Totale: 171 PASS, 0 FAIL.

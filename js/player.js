@@ -65,6 +65,62 @@
   let ignoreKeysUntil = 0;
   const HIDE_MS = 3000; // overlay hides after 3 s without keys while playing
   const SKIP_INTRO_MS = 85000; // Mangayomi default skip duration
+
+  // AniSkip: tempi esatti di sigla iniziale e finale, dal database della community
+  // (api.aniskip.com), cercando prima il numero MyAnimeList dell'anime su AniList.
+  // Solo un pulsante a comparsa: niente salti automatici. Se i servizi non
+  // rispondono entro pochi secondi non succede niente e resta «+85 s».
+  function timeoutFetch(url, init, ms) {
+    const ctrl = new AbortController();
+    const t = setTimeout(() => ctrl.abort(), ms);
+    return fetch(url, Object.assign({}, init, { signal: ctrl.signal, credentials: "omit" })).finally(() => clearTimeout(t));
+  }
+  function cleanTitle(t) {
+    return String(t || "").replace(/\((ita|sub ita|jp|dub)\)/ig, "").replace(/\b(sub\s*ita|ita|dub)\b/ig, "").replace(/\s+/g, " ").trim();
+  }
+  async function malIdFor(title) {
+    const key = "mly.malid." + title.toLowerCase();
+    try { const c = localStorage.getItem(key); if (c) return Number(c) || 0; } catch (e) {}
+    const res = await timeoutFetch("https://graphql.anilist.co", {
+      method: "POST",
+      headers: { "Content-Type": "application/json", "Accept": "application/json" },
+      body: JSON.stringify({ query: "query($s:String){Media(search:$s,type:ANIME){idMal}}", variables: { s: title } }),
+    }, 4000);
+    const data = await res.json();
+    const id = Number(data && data.data && data.data.Media && data.data.Media.idMal) || 0;
+    try { localStorage.setItem(key, String(id)); } catch (e) {}
+    return id;
+  }
+  async function loadSkipTimes(target) {
+    target.skipTimes = [];
+    try {
+      const meta = Mly.memory.extensions[String(target.sourceId)];
+      if (meta && meta.isNsfw) return;
+      const ep = target.episodes && target.episodes[target.episodeIndex];
+      const n = ep && Mly.ui && Mly.ui.epNumber ? Mly.ui.epNumber(ep.name) : NaN;
+      const title = cleanTitle(target.title);
+      if (!title || !(n > 0)) return;
+      const mal = await malIdFor(title);
+      if (!mal || frame !== target) return;
+      const res = await timeoutFetch("https://api.aniskip.com/v2/skip-times/" + mal + "/" + Math.floor(n) + "?types[]=op&types[]=ed&episodeLength=0", {}, 4000);
+      const data = await res.json();
+      if (frame !== target || !data || !data.found) return;
+      target.skipTimes = (data.results || []).map((r) => ({ type: r.skipType, start: r.interval.startTime, end: r.interval.endTime }))
+        .filter((r) => (r.type === "op" || r.type === "ed") && r.end > r.start);
+      paintChrome();
+    } catch (e) {}
+  }
+  function activeSkip() {
+    if (!frame || !frame.skipTimes || !frame.skipTimes.length) return null;
+    const t = currentMs() / 1000;
+    return frame.skipTimes.find((r) => t >= r.start && t < r.end - 1) || null;
+  }
+  function doSkip() {
+    const r = activeSkip();
+    if (!r) return false;
+    seek((r.end - currentMs() / 1000) * 1000);
+    return true;
+  }
   const PLAY_SVG = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
   const PAUSE_SVG = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6zM14 5v14h4V5z"/></svg>';
 
@@ -107,6 +163,8 @@
   }
 
   function stop(noSave) {
+    cancelNext();
+    locked = false;
     if (!noSave && frame && (video || usingAv)) { try { remember(false); } catch (e) {} }
     qualityOpen = false;
     ctl = -1;
@@ -201,6 +259,16 @@
     if (durEl) durEl.textContent = fmt(dur);
     if (time) time.textContent = fmt(now) + " / " + fmt(dur);
     if (q && frame) q.textContent = shortQuality(frame.videos[frame.videoIndex]);
+    const pop = document.getElementById("player-skip");
+    if (pop) {
+      const r = activeSkip();
+      pop.hidden = !r;
+      if (r) {
+        const label = (r.type === "op" ? "Salta sigla" : "Salta finale");
+        const span = pop.querySelector(".skip-label");
+        if (span && span.textContent !== label) span.textContent = label;
+      }
+    }
     const paused = isPaused();
     const center = document.getElementById("player-center");
     if (center) {
@@ -414,11 +482,41 @@
   function nextOf() {
     return frame && Mly.ui && Mly.ui.nextIndex ? Mly.ui.nextIndex(frame.episodes, frame.episodeIndex) : -1;
   }
+  // Fine episodio: solo alla fine vera del file (quindi dopo eventuali scene
+  // dopo la sigla finale) parte un conto alla rovescia di 10 s per il prossimo
+  // episodio. OK lo fa partire subito, Indietro lo annulla.
+  let nextTimer = null;
+  let nextLeft = 0;
+  function cancelNext() {
+    clearInterval(nextTimer);
+    nextTimer = null;
+    nextLeft = 0;
+    const el = document.getElementById("player-next");
+    if (el) el.hidden = true;
+  }
+  function paintNext() {
+    const el = document.getElementById("player-next");
+    if (!el) return;
+    el.hidden = !nextTimer;
+    const n = el.querySelector(".next-count");
+    if (n) n.textContent = String(nextLeft);
+  }
+  function startNextCountdown() {
+    cancelNext();
+    nextLeft = 10;
+    nextTimer = setInterval(() => {
+      nextLeft--;
+      if (nextLeft <= 0) { cancelNext(); nextEpisode(true); return; }
+      paintNext();
+    }, 1000);
+    paintNext();
+    show();
+  }
   function onEnded() {
     // An empty video element fires "ended" while the real file is still loading.
     if (!played) return;
     remember(true);
-    if (nextOf() >= 0) nextEpisode(true);
+    if (nextOf() >= 0) startNextCountdown();
   }
 
   function attach(next) {
@@ -443,6 +541,8 @@
     video.addEventListener("waiting", () => setWaiting(true));
     video.addEventListener("canplay", () => { if (played) setWaiting(false); });
     video.addEventListener("pause", paintChrome);
+    // Dopo un salto il pulsante «Salta sigla» compare o sparisce subito.
+    video.addEventListener("seeked", paintChrome);
     video.addEventListener("error", () => {
       if (!video || !video.getAttribute("src")) return;
       showError("Il video non è partito. " + headerNote());
@@ -459,6 +559,7 @@
     loadSubtitles();
     show();
     remember(false);
+    loadSkipTimes(frame);
   }
 
   function seek(delta) {
@@ -528,7 +629,26 @@
     qualityIndex = frame.videoIndex;
   }
 
+  let locked = false;
+  let lastLockOk = 0;
+  let lockTimer = null;
+  function lockHint(text, ms) {
+    const el = document.getElementById("player-lock");
+    if (!el) return;
+    el.textContent = "🔒 " + text;
+    el.hidden = false;
+    clearTimeout(lockTimer);
+    lockTimer = setTimeout(() => { el.hidden = true; }, ms || 2000);
+  }
   function press(id) {
+    if (id === "lock") {
+      locked = true;
+      lastLockOk = 0;
+      ctl = -1;
+      lockHint("Bloccato · premi OK due volte per sbloccare", 2500);
+      paintChrome();
+      return;
+    }
     if (id === "prev") { if (!prevEpisode()) showError("Non c'è un episodio precedente."); }
     else if (id === "next") { if (!nextEpisode()) showError("Non c'è un episodio successivo."); }
     else if (id === "back10") seek(-10000);
@@ -564,9 +684,28 @@
   function handleKey(e) {
     if (!frame) return false;
     if (Date.now() < ignoreKeysUntil) return true;
+    // Lucchetto: i tasti non fanno niente (niente avanti/indietro per sbaglio).
+    // Si sblocca premendo OK due volte; Play/Pausa del telecomando funziona ancora.
+    if (locked) {
+      const kk = e.key, kc = e.keyCode;
+      if (kk === "MediaPlayPause" || kc === 10252) { toggle(); paintChrome(); return true; }
+      if (kk === "Enter") {
+        const now = Date.now();
+        if (now - lastLockOk < 1500) { locked = false; lockHint("Sbloccato", 1500); return true; }
+        lastLockOk = now;
+        lockHint("Premi ancora OK per sbloccare", 1600);
+        return true;
+      }
+      lockHint("Bloccato · premi OK due volte per sbloccare", 2500);
+      return true;
+    }
     const key = e.key;
     const code = e.keyCode;
     show();
+    if (nextTimer) {
+      if (key === "Enter") { cancelNext(); nextEpisode(true); return true; }
+      if (isBackKey(e) || key.indexOf("Arrow") === 0) { cancelNext(); paintChrome(); return true; }
+    }
     if (qualityOpen) {
       const n = frame.videos.length;
       if (key === "ArrowDown") qualityIndex = Math.min(n - 1, qualityIndex + 1);
@@ -596,6 +735,7 @@
     }
     if (key === "ArrowLeft") seek(-10000);
     else if (key === "ArrowRight") seek(10000);
+    else if ((key === "Enter" || key === " ") && doSkip()) { /* OK durante la sigla: la salta */ }
     else if (key === "Enter" || key === " ") toggle();
     else if (key === "ArrowDown") openBar();
     else if (key === "ArrowUp") { /* reveals the overlay; does not jump to Qualità */ }
@@ -627,6 +767,8 @@
   Mly.player = {
     heightOf, bestIndex, lockHighest, attach, stop, isOpen, handleKey, probeHls, paintChrome,
     chooseQuality, nextEpisode, prevEpisode, save, press, SKIP_INTRO_MS, isPlaceholderPlaylist, OFFLINE_ROOM,
+    isLocked: () => locked,
+    cleanTitle, activeSkip, doSkip, loadSkipTimes, startNextCountdown, cancelNext, nextCountdown: () => (nextTimer ? nextLeft : 0),
     _frame: () => frame,
     state: () => ({ ctl, qualityOpen, subIndex, focused: (controls()[ctl] || {}).dataset ? controls()[ctl].dataset.pc : null }),
   };

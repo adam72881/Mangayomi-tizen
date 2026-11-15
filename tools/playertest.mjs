@@ -16,6 +16,7 @@ const KEYS = { 37: "ArrowLeft", 38: "ArrowUp", 39: "ArrowRight", 40: "ArrowDown"
 const key = async code => { for (const type of ["rawKeyDown", "keyUp"]) await send("Input.dispatchKeyEvent", { type, windowsVirtualKeyCode: code, nativeVirtualKeyCode: code, key: KEYS[code], code: code === 48 ? "Digit0" : KEYS[code] }); };
 const waitFor = async (x, ms = 45000) => { const t = Date.now(); while (Date.now() - t < ms) { const v = await ev(x); if (v && !String(v).startsWith("ERR")) return true; await sleep(400); } return false; };
 const click = sel => ev(`(()=>{const e=document.querySelector(${JSON.stringify(sel)}); if(!e) return 'manca'; e.click(); return 'ok'})()`);
+const Mly_locked_ok = (a, b) => Math.abs(b - a) < 4;
 const results = []; const ok = (name, cond, info) => { results.push((cond ? "PASS " : "FAIL ") + name + (info !== undefined ? "  → " + JSON.stringify(info) : "")); };
 // v0.3.5: ingresso sorgente, copertine, lettore stile Mangayomi. Uso: node playertest.mjs <porta>
 await send("Runtime.enable");
@@ -74,6 +75,36 @@ await waitFor("document.querySelectorAll('[data-mount=episodes] .vrow').length>0
 await click('[data-act=detail-play]');
 const started = await waitFor("(()=>{const v=document.getElementById('player-video'); return v && v.readyState>=2 && v.currentTime>0.5})()", 60000);
 ok("il video parte da solo", !!started);
+// AniSkip: ricerca vera (AniList + AniSkip) su One Piece ep. 1000, poi il pulsante a comparsa
+const real = await ev(`(async()=>{ const f={title:'One Piece (ITA)', sourceId:'x', episodes:[{name:'Episodio 1000'}], episodeIndex:0}; const save=Mly.player._frame(); /* la ricerca vale solo per il frame attivo: la provo a parte */ const t=Mly.player.cleanTitle(f.title); const r=await fetch('https://graphql.anilist.co',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({query:'query($s:String){Media(search:$s,type:ANIME){idMal}}',variables:{s:t}})}).then(x=>x.json()); const mal=r.data.Media.idMal; const sk=await fetch('https://api.aniskip.com/v2/skip-times/'+mal+'/1000?types[]=op&types[]=ed&episodeLength=0').then(x=>x.json()); return {titolo:t, mal, found:sk.found, op:(sk.results||[]).find(x=>x.skipType==='op')} })()`);
+ok("AniSkip: dal titolo «One Piece (ITA)» trova MyAnimeList 21 e i tempi della sigla dell'ep. 1000", real && real.titolo === "One Piece" && real.mal === 21 && real.found && real.op && real.op.interval.endTime > real.op.interval.startTime, real);
+await ev("(()=>{ const f=Mly.player._frame(); f.skipTimes=[{type:'op', start:30, end:120}]; const v=document.getElementById('player-video'); v.currentTime=40; return 1 })()"); await waitFor("document.getElementById('player-video').readyState>=2 && Math.abs(document.getElementById('player-video').currentTime-40)<5", 15000); await sleep(400);
+ok("durante la sigla compare «Salta sigla · OK»", await ev("(()=>{const b=document.getElementById('player-skip'); return !b.hidden && /Salta sigla/.test(b.textContent)})()"), await ev("document.getElementById('player-skip').outerHTML.slice(0,160)"));
+await key(13); await sleep(700);
+const dopoSkip = await ev("document.getElementById('player-video').currentTime");
+ok("OK durante la sigla la salta (arriva a fine sigla, senza mettere in pausa)", dopoSkip >= 118 && dopoSkip < 135 && await ev("!document.getElementById('player-video').paused"), dopoSkip);
+ok("finita la sigla il pulsante sparisce", await ev("document.getElementById('player-skip').hidden"));
+// Episodio successivo: conto alla rovescia solo alla fine vera, Indietro annulla, OK subito
+await ev("Mly.player.startNextCountdown(); 1"); await sleep(1300);
+const cd = await ev("({vis:!document.getElementById('player-next').hidden, n:Mly.player.nextCountdown(), txt:document.getElementById('player-next').innerText})");
+ok("fine episodio: compare «Prossimo episodio tra N s» e conta alla rovescia", cd.vis && cd.n > 0 && cd.n < 10 && /Prossimo episodio tra/.test(cd.txt), cd);
+await key(10009); await sleep(300);
+ok("Indietro annulla il prossimo episodio e resta nel lettore", await ev("document.getElementById('player-next').hidden && Mly.player.nextCountdown()===0 && Mly.player.isOpen()"));
+// Lucchetto: con i tasti bloccati Destra non va avanti, OK due volte sblocca
+const tnow = () => ev("document.getElementById('player-video').currentTime");
+await ev("Mly.player.press('lock'); 1"); await sleep(300);
+const tl0 = await tnow(); await key(39); await sleep(500); await key(39); await sleep(500);
+const tl1 = await tnow();
+ok("lucchetto: con i tasti bloccati Destra non va avanti di 10 s e compare l'avviso", Mly_locked_ok(tl0, tl1) && await ev("Mly.player.isLocked() && !document.getElementById('player-lock').hidden && /Bloccato/.test(document.getElementById('player-lock').textContent)"), { prima: tl0, dopo: tl1 });
+await key(13); await sleep(300);
+ok("lucchetto: un solo OK non sblocca (chiede di premere ancora)", await ev("Mly.player.isLocked() && /ancora OK/.test(document.getElementById('player-lock').textContent)"));
+await key(13); await sleep(300);
+ok("lucchetto: OK due volte sblocca", await ev("!Mly.player.isLocked()"));
+const tl2 = await tnow(); await key(39); await sleep(600);
+ok("dopo lo sblocco Destra va di nuovo avanti di 10 s", (await tnow()) - tl2 > 8, { prima: tl2, dopo: await tnow() });
+await ev("(()=>{ Mly.player._frame().skipTimes=[]; document.getElementById('player-video').currentTime=1; return 1 })()");
+await waitFor("(()=>{const v=document.getElementById('player-video'); return v.readyState>=3 && !v.paused && document.getElementById('player-wait').hidden})()", 20000); await sleep(300);
+
 ok("niente scritta sull'episodio successivo all'apertura", await ev("(()=>{const e=document.getElementById('player-error'); return !e || e.hidden || !/episodio successivo/i.test(e.textContent)})()"));
 ok("la rotella di caricamento sparisce quando il video è partito", await ev("(()=>{const w=document.getElementById('player-wait'); const rule=[...document.styleSheets].some(s=>{try{return [...s.cssRules].some(r=>r.name==='player-spin'||(r.selectorText||'')==='.player-wait')}catch(e){return false}}); return !!w && w.hidden && w.classList.contains('player-wait') && rule})()"));
 const buf = await ev("(()=>{const v=document.getElementById('player-video'), w=document.getElementById('player-wait'); v.dispatchEvent(new Event('waiting')); const a=!w.hidden; v.dispatchEvent(new Event('playing')); return {durante:a, dopo:!w.hidden}})()");
@@ -84,7 +115,7 @@ ok("Sottotitoli: il pulsante compare solo quando la sorgente ha tracce", subsOn 
 const ui = await ev("(()=>{const q=document.getElementById('player-qualities'); const sh=document.getElementById('player-shade'); return {listaQualita: getComputedStyle(q).display, testo: sh.innerText.replace(/\\n+/g,' | '), titolo: document.querySelector('.player-name').textContent, ep: document.querySelector('.player-ep').textContent, tempi:[document.getElementById('player-cur').textContent, document.getElementById('player-dur').textContent], pulsanti:[...document.querySelectorAll('#player-ctl [data-pc]')].map(b=>b.dataset.pc+(b.disabled?'(off)':''))}})()");
 ok("nessuna lista qualità all'avvio", ui.listaQualita === "none", ui.listaQualita);
 ok("nessuna etichetta 'AnimeWorld' nel lettore", !/AnimeWorld/.test(ui.testo), ui.testo);
-ok("sovrimpressione: titolo, episodio, tempi, pulsanti", ui.titolo.length > 0 && /Episodio|Ep/i.test(ui.ep + ui.titolo) && /\d+:\d\d/.test(ui.tempi[0]) && /\d+:\d\d/.test(ui.tempi[1]) && JSON.stringify(ui.pulsanti.map(p => p.replace("(off)", "")).filter(p => p !== "subs")) === '["prev","back10","play","fwd10","next","skip","quality"]', ui);
+ok("sovrimpressione: titolo, episodio, tempi, pulsanti", ui.titolo.length > 0 && /Episodio|Ep/i.test(ui.ep + ui.titolo) && /\d+:\d\d/.test(ui.tempi[0]) && /\d+:\d\d/.test(ui.tempi[1]) && JSON.stringify(ui.pulsanti.map(p => p.replace("(off)", "")).filter(p => p !== "subs")) === '["lock","prev","back10","play","fwd10","next","skip","quality"]', ui);
 const st = () => ev("Mly.player.state()");
 const t = () => ev("document.getElementById('player-video').currentTime");
 let t0 = await t(); await key(39); await sleep(400);
