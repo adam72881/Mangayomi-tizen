@@ -1,6 +1,10 @@
 /* Client, MProvider and SharedPreferences.
    Cookie, Referer and User-Agent cannot be set from a TV webview.
    They are dropped and, if the site then demands them, the UI says so.
+   One exception: GET https://play.saturncdn.net/embed/<id>/playlist
+   goes through the Tizen Download API, which can send
+   Referer: https://play.saturncdn.net/. The query string (the playlist
+   token) is never written to logs or to errors.
    Nothing here bypasses Cloudflare, anti-bot, paywalls or age checks. */
 (function () {
   const Mly = (window.Mly = window.Mly || {});
@@ -96,7 +100,199 @@
   const noCookieHosts = {};
   function hostOf(u) { try { return new URL(u).host; } catch (e) { return ""; } }
 
+  // Only the AnimeSaturn playlist. The id is one path segment; the token stays in the query.
+  function isSaturnPlaylist(method, url) {
+    if (String(method || "").toUpperCase() !== "GET") return false;
+    let u;
+    try { u = new URL(url); } catch (e) { return false; }
+    if (u.protocol !== "https:" || u.hostname !== "play.saturncdn.net" || u.port) return false;
+    const parts = u.pathname.split("/");
+    return parts.length === 4 && parts[1] === "embed" && parts[3] === "playlist" && !!parts[2] && parts[2] !== "." && parts[2] !== "..";
+  }
+
+  function playlistUrlWithoutSecret(url) {
+    try {
+      const u = new URL(url);
+      return u.origin + u.pathname;
+    } catch (e) {
+      const s = String(url || "");
+      const cut = s.search(/[?#]/);
+      return cut === -1 ? "https://play.saturncdn.net/embed/<id>/playlist" : s.slice(0, cut);
+    }
+  }
+
+  // Drop the playlist URL and its token from any text that might be shown or logged.
+  function redactSecrets(text, url) {
+    let s = String(text == null ? "" : text);
+    const full = url == null ? "" : String(url);
+    if (full) s = s.split(full).join(playlistUrlWithoutSecret(full));
+    let token = "";
+    try { token = new URL(full).searchParams.get("token") || ""; } catch (e) { token = ""; }
+    if (token.length >= 8) {
+      s = s.split(token).join("");
+      try {
+        const enc = encodeURIComponent(token);
+        if (enc !== token) s = s.split(enc).join("");
+      } catch (e) {}
+    }
+    s = s.replace(/https?:\/\/play\.saturncdn\.net\/embed\/[^?\s"'<>]*\/playlist(?:\?[^ \t\r\n"'<>]*)?/gi, "https://play.saturncdn.net/embed/<id>/playlist");
+    s = s.replace(/([?&]token=)[^&\s"'<>]*/gi, "$1");
+    return s;
+  }
+
+  function downloadFail(error, url) {
+    const name = error && error.name ? String(error.name) : "";
+    const message = error instanceof Error ? error.message : (error && error.message ? String(error.message) : (typeof error === "string" ? error : ""));
+    let detail = redactSecrets([name, message].filter(Boolean).join(": "), url).replace(/\s+/g, " ").trim();
+    detail = detail.replace(/^[:\s.]+|[:\s.]+$/g, "");
+    if (!detail) return new Error("Download della playlist di AnimeSaturn non riuscito.");
+    return new Error("Download della playlist di AnimeSaturn non riuscito: " + detail + ".");
+  }
+
+  let saturnPlaylistSeq = 0;
+
+  function deleteDownloaded(file) {
+    return new Promise((resolve) => {
+      let done = false;
+      const finish = () => { if (!done) { done = true; resolve(); } };
+      const timer = setTimeout(finish, 2000);
+      const ok = () => { clearTimeout(timer); finish(); };
+      try {
+        const full = file && (file.fullPath || file.path);
+        if (file && file.parent && typeof file.parent.deleteFile === "function" && full) {
+          file.parent.deleteFile(full, ok, ok);
+          return;
+        }
+      } catch (e) {}
+      ok();
+    });
+  }
+
+  function readFileText(file, url) {
+    return new Promise((resolve, reject) => {
+      const bad = (error) => {
+        const detail = redactSecrets(error && (error.message || error.name) || "", url).replace(/\s+/g, " ").trim();
+        reject(new Error(detail ? "Impossibile leggere la playlist di AnimeSaturn: " + detail + "." : "Impossibile leggere la playlist di AnimeSaturn."));
+      };
+      if (file && typeof file.readAsText === "function") {
+        file.readAsText((text) => resolve(text == null ? "" : String(text)), bad, "UTF-8");
+        return;
+      }
+      if (file && typeof file.openStream === "function") {
+        file.openStream("r", (stream) => {
+          try {
+            const n = file.fileSize > 0 ? file.fileSize : 65536;
+            const text = stream.read(n);
+            try { stream.close(); } catch (e) {}
+            resolve(text == null ? "" : String(text));
+          } catch (e) {
+            try { stream.close(); } catch (e2) {}
+            bad(e);
+          }
+        }, bad, "UTF-8");
+        return;
+      }
+      bad(null);
+    });
+  }
+
+  function readDownloaded(path, url) {
+    const api = window.tizen;
+    if (!api || !api.filesystem || typeof api.filesystem.resolve !== "function") {
+      return Promise.reject(new Error("tizen.filesystem non è disponibile: la playlist di AnimeSaturn è stata scaricata ma non si può leggere."));
+    }
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      const ok = (text) => { if (!settled) { settled = true; resolve(text); } };
+      const bad = (error) => { if (!settled) { settled = true; reject(error instanceof Error ? error : downloadFail(error, url)); } };
+      try {
+        api.filesystem.resolve(String(path), (file) => {
+          const drop = () => deleteDownloaded(file);
+          readFileText(file, url).then(
+            (text) => drop().then(() => ok(text)),
+            (error) => drop().then(() => bad(error)),
+          );
+        }, (error) => bad(downloadFail(error, url)), "r");
+      } catch (e) {
+        bad(downloadFail(e, url));
+      }
+    });
+  }
+
+  function playlistResponse(text, url) {
+    return {
+      body: text == null ? "" : String(text),
+      headers: {},
+      isRedirect: false,
+      persistentConnection: false,
+      reasonPhrase: "OK",
+      statusCode: 200,
+      request: {
+        method: "GET",
+        url: playlistUrlWithoutSecret(url),
+        headers: { Referer: "https://play.saturncdn.net/" },
+        followRedirects: true,
+      },
+    };
+  }
+
+  function downloadSaturnPlaylist(url) {
+    const api = window.tizen;
+    if (!api || !api.download || typeof api.download.start !== "function" || typeof api.DownloadRequest !== "function") {
+      return Promise.reject(new Error("Il Download API di Tizen non è disponibile su questo dispositivo. Senza non si può inviare il Referer di play.saturncdn.net, quindi la playlist di AnimeSaturn non si apre."));
+    }
+    return new Promise((resolve, reject) => {
+      let settled = false;
+      let downloadId = null;
+      const timerBox = { id: 0 };
+      const finish = (fn, value) => {
+        if (settled) return;
+        settled = true;
+        clearTimeout(timerBox.id);
+        fn(value);
+      };
+      const fail = (error) => finish(reject, error instanceof Error ? error : downloadFail(error, url));
+      timerBox.id = setTimeout(() => {
+        const id = downloadId;
+        fail(new Error("Download della playlist di AnimeSaturn non riuscito: tempo scaduto."));
+        try { if (id != null && typeof api.download.cancel === "function") api.download.cancel(id); } catch (e) {}
+      }, 45000);
+      let req;
+      try {
+        saturnPlaylistSeq += 1;
+        req = new api.DownloadRequest(url, "downloads", "as-playlist-" + saturnPlaylistSeq + ".json", "ALL", {
+          Referer: "https://play.saturncdn.net/",
+        });
+      } catch (e) {
+        fail(downloadFail(e, url));
+        return;
+      }
+      try {
+        downloadId = api.download.start(req, {
+          onprogress: function () {},
+          onpaused: function () {},
+          oncanceled: function () {
+            fail(new Error("Download della playlist di AnimeSaturn annullato."));
+          },
+          oncompleted: function (id, path) {
+            if (!path) {
+              fail(new Error("Download della playlist di AnimeSaturn non riuscito: percorso del file assente."));
+              return;
+            }
+            readDownloaded(path, url).then((text) => finish(resolve, playlistResponse(text, url)), fail);
+          },
+          onfailed: function (id, error) {
+            fail(downloadFail(error, url));
+          },
+        });
+      } catch (e) {
+        fail(downloadFail(e, url));
+      }
+    });
+  }
+
   async function http(method, url, headers, body, options) {
+    if (isSaturnPlaylist(method, url)) return downloadSaturnPlaylist(url);
     const follow = !options || options.followRedirects !== false;
     const split = splitHeaders(headers);
     if (split.stripped.length) callState.stripped.push(...split.stripped);

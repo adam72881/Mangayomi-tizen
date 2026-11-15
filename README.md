@@ -26,7 +26,7 @@ The folder is a Tizen web project: `config.xml` is the TV profile (`tv-samsung`)
 tizen package -t wgt -- .
 ```
 
-Sign the widget with your Samsung certificate and install it with `tizen install` or the device manager. Privileges: internet, unlimited storage, and Samsung AVPlay. HTML video plus the vendored hls.js player is the default. AVPlay is used for MP4 only when Player settings turn it on and `webapis.avplay` exists. HLS stays on hls.js so the top variant can be locked.
+Sign the widget with your Samsung certificate and install it with `tizen install` or the device manager. Privileges: internet, unlimited storage, Samsung AVPlay, download, media storage, and filesystem read. Download is used only for the AnimeSaturn playlist, so the Referer can be sent. The playlist token is never written to logs. HTML video plus the vendored hls.js player is the default. AVPlay is used for MP4 only when Player settings turn it on and `webapis.avplay` exists. HLS stays on hls.js so the top variant can be locked.
 
 If a public certificate rejects the AVPlay privilege, remove that one line from `config.xml`. Playback still uses the video element and hls.js.
 

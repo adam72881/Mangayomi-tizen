@@ -39,6 +39,9 @@ tizen install -n "<nome-pacchetto>.wgt" -s <IP-della-TV>:26101 -- .buildResult
 | `internet` | estensioni e video |
 | `tv.inputdevice` | tasti numerici del telecomando (0×5 per i contenuti per adulti) |
 | `unlimitedstorage` | libreria e codice delle estensioni |
+| `download` | playlist di AnimeSaturn, con il Referer che `fetch` non può inviare |
+| `mediastorage` | file scaricato da quel download |
+| `filesystem.read` | lettura di quel file, che poi viene cancellato |
 | `application.launch` | il pulsante «Web» apre la pagina nel browser della TV |
 | `avplay` (Samsung) | lettore Samsung AVPlay per MP4, se attivato nelle impostazioni |
 
@@ -50,5 +53,5 @@ Se un certificato pubblico rifiuta AVPlay, togli quella riga: la riproduzione us
 - **Estensioni:** arrivano dai repository in Altro › Sfoglia. Di serie c'è `adam72881/mangayomi-anime-extensions`; se ne possono aggiungere altri (indirizzo di un `anime_index.json`).
 - **Contenuti per adulti:** sono nascosti. Si mostrano e nascondono premendo 0 cinque volte in 3 secondi.
 - **Limiti:**
-  - Tizen non ha WebView: le estensioni che richiedono login, controlli Cloudflare o header personalizzati non funzionano.
+  - Tizen non ha WebView: le estensioni che richiedono login, controlli Cloudflare o header personalizzati non funzionano. Fa eccezione solo `GET https://play.saturncdn.net/embed/<id>/playlist`: il Download API invia `Referer: https://play.saturncdn.net/`. Il token in quell'indirizzo non viene scritto nei log.
   - L'app non aggira protezioni, paywall o verifiche dell'età.
