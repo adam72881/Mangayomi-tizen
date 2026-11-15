@@ -123,6 +123,8 @@
   }
   const PLAY_SVG = '<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z"/></svg>';
   const PAUSE_SVG = '<svg viewBox="0 0 24 24"><path d="M6 19h4V5H6zM14 5v14h4V5z"/></svg>';
+  const LOCK_SVG = '<svg viewBox="0 0 24 24"><path d="M18 8h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm-6 9c-1.1 0-2-.9-2-2s.9-2 2-2 2 .9 2 2-.9 2-2 2zm3.1-9H8.9V6c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2z"/></svg>';
+  const UNLOCK_SVG = '<svg viewBox="0 0 24 24"><path d="M12 17c1.1 0 2-.9 2-2s-.9-2-2-2-2 .9-2 2 .9 2 2 2zm6-9h-1V6c0-2.76-2.24-5-5-5S7 3.24 7 6h1.9c0-1.71 1.39-3.1 3.1-3.1 1.71 0 3.1 1.39 3.1 3.1v2H6c-1.1 0-2 .9-2 2v10c0 1.1.9 2 2 2h12c1.1 0 2-.9 2-2V10c0-1.1-.9-2-2-2zm0 12H6V10h12v10z"/></svg>';
 
   function isOpen() { return !!frame; }
 
@@ -232,6 +234,7 @@
   }
 
   function show() {
+    if (locked && !nextTimer) return;
     const shade = document.getElementById("player-shade");
     if (shade) shade.classList.add("is-shown");
     clearTimeout(hideTimer);
@@ -261,7 +264,7 @@
     if (q && frame) q.textContent = shortQuality(frame.videos[frame.videoIndex]);
     const pop = document.getElementById("player-skip");
     if (pop) {
-      const r = activeSkip();
+      const r = locked ? null : activeSkip();
       pop.hidden = !r;
       if (r) {
         const label = (r.type === "op" ? "Salta sigla" : "Salta finale");
@@ -275,7 +278,8 @@
       center.hidden = !paused || !frame || !(video && video.readyState >= 2 || usingAv);
     }
     const shade = document.getElementById("player-shade");
-    if (shade && (paused || ctl >= 0 || qualityOpen)) { shade.classList.add("is-shown"); shade._sticky = true; }
+    if (shade && locked && !nextTimer) { shade.classList.remove("is-shown"); shade._sticky = false; }
+    else if (shade && (paused || ctl >= 0 || qualityOpen)) { shade.classList.add("is-shown"); shade._sticky = true; }
     else if (shade && shade._sticky) { shade._sticky = false; show(); }
     const btns = controls();
     btns.forEach((btn) => {
@@ -472,6 +476,7 @@
   }
   function showError(msg) {
     setWaiting(false);
+    if (locked) { locked = false; show(); }
     const el = document.getElementById("player-error");
     if (el) { el.hidden = false; el.textContent = msg; }
   }
@@ -632,10 +637,14 @@
   let locked = false;
   let lastLockOk = 0;
   let lockTimer = null;
-  function lockHint(text, ms) {
+  // Issue #14: con il blocco attivo si vede solo un lucchetto grande al centro, per 2 s.
+  function lockHint(text, ms, open) {
     const el = document.getElementById("player-lock");
     if (!el) return;
-    el.textContent = "🔒 " + text;
+    const icon = el.querySelector(".lock-icon");
+    const label = el.querySelector(".lock-text");
+    if (icon) icon.innerHTML = open ? UNLOCK_SVG : LOCK_SVG;
+    if (label) label.textContent = text;
     el.hidden = false;
     clearTimeout(lockTimer);
     lockTimer = setTimeout(() => { el.hidden = true; }, ms || 2000);
@@ -645,7 +654,8 @@
       locked = true;
       lastLockOk = 0;
       ctl = -1;
-      lockHint("Bloccato · premi OK due volte per sbloccare", 2500);
+      qualityOpen = false;
+      lockHint("OK due volte per sbloccare", 2000);
       paintChrome();
       return;
     }
@@ -691,12 +701,12 @@
       if (kk === "MediaPlayPause" || kc === 10252) { toggle(); paintChrome(); return true; }
       if (kk === "Enter") {
         const now = Date.now();
-        if (now - lastLockOk < 1500) { locked = false; lockHint("Sbloccato", 1500); return true; }
+        if (now - lastLockOk < 1500) { locked = false; lockHint("Sbloccato", 1500, true); return true; }
         lastLockOk = now;
         lockHint("Premi ancora OK per sbloccare", 1600);
         return true;
       }
-      lockHint("Bloccato · premi OK due volte per sbloccare", 2500);
+      lockHint("OK due volte per sbloccare", 2000);
       return true;
     }
     const key = e.key;

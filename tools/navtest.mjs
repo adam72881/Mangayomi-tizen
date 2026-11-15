@@ -150,7 +150,12 @@ ok("Altro › Lettore: l'interruttore AVPlay cambia e si salva", await ev("Mly.m
 await click('[data-act="toggle-av"]'); await sleep(200);
 await key(10009); await sleep(300);
 await click('[data-act="push"][data-screen="about"]'); await sleep(300);
-ok("Altro › Informazioni: versione 0.3.7", /0\.3\.7/.test(await ev("document.querySelector('.screen').innerText")));
+ok("Altro › Informazioni: versione 0.3.8", /0\.3\.8/.test(await ev("document.querySelector('.screen').innerText")));
+// Issue #13: in inglese tutta la pagina Informazioni è tradotta
+await ev("Mly.memory.settings.lang='en'; Mly.i18n.start(); 1"); await sleep(300);
+const aboutEn = await ev("document.querySelector('.screen .prose').innerText");
+ok("Informazioni in inglese: nessun paragrafo in italiano (issue #13)", /This TV has no WebView/.test(aboutEn) && !/Questa TV|non vengono|Versione|Le estensioni/.test(aboutEn), aboutEn);
+await ev("Mly.memory.settings.lang='auto'; Mly.i18n.start(); 1"); await sleep(200);
 await key(10009); await sleep(300);
 await click('[data-act="push"][data-screen="stats"]'); await sleep(300);
 const st = await ev("JSON.stringify({n:document.querySelectorAll('.stat').length, vals:[...document.querySelectorAll('.stat')].map(x=>x.innerText.replace(/\\n/g,' ')), focus:(Mly.nav.current()||{}).dataset?.act})");
